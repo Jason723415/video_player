@@ -1,714 +1,1412 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="zh-TW">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>🎬 Alist 循环播放器 · 本地进度存储</title>
-    <style>
-        * {
-            box-sizing: border-box;
-            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
-        }
-        body {
-            background: #0f0f0f;
-            color: #e0e0e0;
-            margin: 0;
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            padding: 16px;
-        }
-        .player-container {
-            max-width: 1100px;
-            width: 100%;
-            background: #1e1e1e;
-            border-radius: 24px;
-            padding: 24px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.7);
-        }
-        h1 {
-            font-size: 1.8rem;
-            margin: 0 0 6px 0;
-            font-weight: 500;
-            letter-spacing: 1px;
-            color: #fff;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .sub {
-            color: #aaa;
-            font-size: 0.9rem;
-            margin-bottom: 24px;
-            border-bottom: 1px solid #333;
-            padding-bottom: 12px;
-        }
-        .config-panel {
-            background: #2a2a2a;
-            border-radius: 20px;
-            padding: 20px;
-            margin-bottom: 24px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 16px;
-            align-items: flex-end;
-        }
-        .input-group {
-            flex: 1 1 250px;
-            min-width: 200px;
-        }
-        .input-group label {
-            display: block;
-            font-size: 0.85rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            color: #bbb;
-            margin-bottom: 6px;
-        }
-        .input-group input {
-            width: 100%;
-            background: #3a3a3a;
-            border: 1px solid #555;
-            color: white;
-            padding: 12px 16px;
-            border-radius: 40px;
-            font-size: 0.95rem;
-            outline: none;
-            transition: 0.2s;
-        }
-        .input-group input:focus {
-            border-color: #4caf50;
-            background: #2e2e2e;
-        }
-        .button-row {
-            display: flex;
-            gap: 12px;
-            flex-wrap: wrap;
-            align-items: center;
-            margin-left: auto;
-        }
-        button {
-            background: #3a3a3a;
-            border: none;
-            color: white;
-            padding: 12px 24px;
-            border-radius: 40px;
-            font-size: 0.95rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: 0.15s;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            border: 1px solid #555;
-        }
-        button.primary {
-            background: #4caf50;
-            border-color: #2e7d32;
-            color: white;
-            font-weight: 600;
-        }
-        button.primary:hover {
-            background: #66bb6a;
-        }
-        button.warning {
-            background: #d32f2f;
-            border-color: #b71c1c;
-        }
-        button.warning:hover {
-            background: #f44336;
-        }
-        button:not(.primary):hover {
-            background: #4a4a4a;
-        }
-        .video-section {
-            background: #000;
-            border-radius: 20px;
-            overflow: hidden;
-            margin-bottom: 24px;
-            aspect-ratio: 16 / 9;
-        }
-        video {
-            width: 100%;
-            height: 100%;
-            display: block;
-            background: black;
-            outline: none;
-        }
-        .playlist-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin: 16px 0 12px 0;
-        }
-        .playlist-header h3 {
-            font-size: 1.2rem;
-            font-weight: 500;
-            margin: 0;
-            color: #fff;
-        }
-        .badge {
-            background: #333;
-            padding: 4px 12px;
-            border-radius: 40px;
-            font-size: 0.8rem;
-            color: #ccc;
-        }
-        .playlist-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-            gap: 10px;
-            max-height: 300px;
-            overflow-y: auto;
-            padding: 4px 2px;
-            background: #1a1a1a;
-            border-radius: 18px;
-        }
-        .playlist-item {
-            background: #2a2a2a;
-            border-radius: 16px;
-            padding: 12px 16px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            border: 1px solid #3a3a3a;
-            transition: 0.1s;
-            user-select: none;
-        }
-        .playlist-item:hover {
-            background: #3a3a3a;
-            border-color: #4caf50;
-        }
-        .playlist-item.active {
-            background: #2e7d32;
-            border-color: #81c784;
-        }
-        .playlist-item .index {
-            width: 26px;
-            height: 26px;
-            background: #444;
-            border-radius: 30px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.8rem;
-            font-weight: bold;
-            color: #ccc;
-        }
-        .playlist-item.active .index {
-            background: #1b5e20;
-            color: white;
-        }
-        .playlist-item .name {
-            flex: 1;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            font-size: 0.9rem;
-        }
-        .footer-actions {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 20px;
-            color: #aaa;
-            font-size: 0.85rem;
-        }
-        .reset-link {
-            background: none;
-            border: none;
-            color: #ff8a80;
-            text-decoration: underline;
-            cursor: pointer;
-            padding: 4px 8px;
-        }
-        .empty-message {
-            padding: 40px;
-            text-align: center;
-            color: #777;
-            font-style: italic;
-        }
-        .small-note {
-            color: #888;
-            font-size: 0.8rem;
-        }
-        .error-msg {
-            color: #ff8a80;
-            background: #3a1a1a;
-            border-radius: 40px;
-            padding: 10px 20px;
-            margin-top: 12px;
-        }
-    </style>
-    <!-- Font Awesome for icons (optional but nice) -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StreamVault — 影片播放器</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap');
+
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --surface2: #1a1a24;
+    --border: #2a2a3a;
+    --accent: #e8ff47;
+    --accent2: #47b8ff;
+    --text: #f0f0f8;
+    --text-dim: #7070a0;
+    --radius: 8px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ---- HEADER ---- */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 28px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .logo {
+    font-size: 1.25rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+  }
+  .logo span { color: var(--accent); }
+  .header-actions { display: flex; gap: 10px; align-items: center; }
+  .btn {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    padding: 8px 14px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: all .2s;
+    white-space: nowrap;
+  }
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+  .btn.primary {
+    background: var(--accent);
+    color: #0a0a0f;
+    border-color: var(--accent);
+    font-weight: 500;
+  }
+  .btn.primary:hover { background: #d4e840; }
+
+  /* ---- LAYOUT ---- */
+  .app {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    grid-template-rows: auto 1fr;
+    height: calc(100vh - 61px);
+  }
+
+  /* ---- VIDEO AREA ---- */
+  .video-section {
+    grid-column: 1;
+    grid-row: 1 / 3;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--border);
+    overflow: hidden;
+  }
+
+  .video-wrapper {
+    position: relative;
+    background: #000;
+    aspect-ratio: 16/9;
+    width: 100%;
+  }
+
+  video {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  .video-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.7);
+    flex-direction: column;
+    gap: 16px;
+    transition: opacity .3s;
+  }
+  .video-overlay.hidden { opacity: 0; pointer-events: none; }
+  .overlay-icon {
+    width: 64px; height: 64px;
+    border: 2px solid var(--accent);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .overlay-icon svg { fill: var(--accent); }
+  .overlay-text {
+    font-size: 0.9rem;
+    color: var(--text-dim);
+    font-family: 'DM Mono', monospace;
+    text-align: center;
+    padding: 0 40px;
+  }
+
+  /* ---- VIDEO INFO BAR ---- */
+  .video-info {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .video-title {
+    font-size: 1rem;
+    font-weight: 700;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .video-meta {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--text-dim);
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  .badge {
+    padding: 3px 8px;
+    border-radius: 4px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+  }
+  .badge.active { border-color: var(--accent); color: var(--accent); }
+
+  /* ---- CONTROLS ---- */
+  .controls-bar {
+    padding: 14px 20px;
+    background: var(--surface);
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .ctrl-btn {
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all .2s;
+    flex-shrink: 0;
+  }
+  .ctrl-btn:hover { border-color: var(--accent); background: rgba(232,255,71,0.08); }
+  .ctrl-btn.large { width: 46px; height: 46px; }
+  .ctrl-btn svg { width: 16px; height: 16px; fill: currentColor; }
+  .ctrl-btn.large svg { width: 20px; height: 20px; }
+
+  .progress-container {
+    flex: 1; min-width: 100px;
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .progress-track {
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    cursor: pointer;
+    position: relative;
+    transition: height .15s;
+  }
+  .progress-track:hover { height: 6px; }
+  .progress-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 2px;
+    pointer-events: none;
+    width: 0%;
+  }
+  .time-display {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--text-dim);
+    display: flex; justify-content: space-between;
+  }
+
+  .volume-container {
+    display: flex; align-items: center; gap: 6px;
+  }
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 80px; height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+
+  .speed-select {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 6px 8px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    outline: none;
+  }
+  .speed-select:focus { border-color: var(--accent2); }
+
+  /* ---- SIDEBAR ---- */
+  .sidebar {
+    grid-column: 2;
+    grid-row: 1 / 3;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--surface);
+  }
+
+  .sidebar-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .tab {
+    flex: 1;
+    padding: 14px;
+    text-align: center;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    color: var(--text-dim);
+    border-bottom: 2px solid transparent;
+    transition: all .2s;
+    letter-spacing: 0.02em;
+  }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab:hover:not(.active) { color: var(--text); }
+
+  .tab-content { display: none; flex: 1; overflow: hidden; flex-direction: column; }
+  .tab-content.active { display: flex; }
+
+  /* ---- PLAYLIST ---- */
+  .playlist-header {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .playlist-count {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--text-dim);
+  }
+  .playlist-actions { display: flex; gap: 6px; }
+
+  .playlist-scroll { overflow-y: auto; flex: 1; }
+  .playlist-scroll::-webkit-scrollbar { width: 4px; }
+  .playlist-scroll::-webkit-scrollbar-track { background: transparent; }
+  .playlist-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .playlist-item {
+    display: flex;
+    align-items: center;
+    padding: 10px 16px;
+    gap: 10px;
+    border-bottom: 1px solid rgba(42,42,58,0.5);
+    cursor: pointer;
+    transition: background .15s;
+    position: relative;
+  }
+  .playlist-item:hover { background: var(--surface2); }
+  .playlist-item.active { background: rgba(232,255,71,0.06); }
+  .playlist-item.active::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: var(--accent);
+    border-radius: 0 2px 2px 0;
+  }
+  .item-num {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    width: 20px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+  .item-info { flex: 1; min-width: 0; }
+  .item-name {
+    font-size: 0.82rem;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .playlist-item.active .item-name { color: var(--accent); }
+  .item-time {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    margin-top: 2px;
+  }
+  .item-progress-bar {
+    height: 2px;
+    background: var(--border);
+    border-radius: 1px;
+    margin-top: 4px;
+    overflow: hidden;
+  }
+  .item-progress-fill {
+    height: 100%;
+    background: var(--accent2);
+    border-radius: 1px;
+    transition: width .5s;
+  }
+  .item-actions {
+    display: flex;
+    gap: 4px;
+    opacity: 0;
+    transition: opacity .15s;
+    flex-shrink: 0;
+  }
+  .playlist-item:hover .item-actions { opacity: 1; }
+  .mini-btn {
+    width: 26px; height: 26px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-dim);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.7rem;
+    transition: all .15s;
+  }
+  .mini-btn:hover { border-color: var(--accent2); color: var(--accent2); }
+  .mini-btn.danger:hover { border-color: #ff4757; color: #ff4757; }
+  .mini-btn svg { width: 12px; height: 12px; fill: currentColor; }
+
+  /* ---- SETTINGS TAB ---- */
+  .settings-scroll { overflow-y: auto; flex: 1; padding: 16px; }
+  .settings-scroll::-webkit-scrollbar { width: 4px; }
+  .settings-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .setting-group {
+    margin-bottom: 24px;
+  }
+  .setting-group-title {
+    font-size: 0.68rem;
+    font-family: 'DM Mono', monospace;
+    color: var(--accent2);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+  .setting-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 0;
+    gap: 10px;
+  }
+  .setting-label { font-size: 0.82rem; font-weight: 600; }
+  .setting-desc { font-size: 0.7rem; color: var(--text-dim); margin-top: 2px; font-family: 'DM Mono', monospace; }
+  .setting-input {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 10px;
+    border-radius: var(--radius);
+    font-size: 0.78rem;
+    font-family: 'DM Mono', monospace;
+    width: 100%;
+    outline: none;
+    transition: border-color .2s;
+  }
+  .setting-input:focus { border-color: var(--accent2); }
+  .setting-input.full { margin-top: 6px; }
+
+  /* Toggle */
+  .toggle {
+    position: relative;
+    width: 40px; height: 22px;
+    flex-shrink: 0;
+  }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle-slider {
+    position: absolute;
+    inset: 0;
+    background: var(--border);
+    border-radius: 11px;
+    cursor: pointer;
+    transition: .2s;
+  }
+  .toggle-slider::before {
+    content: '';
+    position: absolute;
+    width: 16px; height: 16px;
+    left: 3px; top: 3px;
+    background: var(--text-dim);
+    border-radius: 50%;
+    transition: .2s;
+  }
+  .toggle input:checked + .toggle-slider { background: rgba(232,255,71,0.3); }
+  .toggle input:checked + .toggle-slider::before {
+    transform: translateX(18px);
+    background: var(--accent);
+  }
+
+  /* ---- ADD VIDEO MODAL ---- */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.8);
+    backdrop-filter: blur(4px);
+    z-index: 200;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none;
+    transition: opacity .2s;
+  }
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px;
+    width: 500px;
+    max-width: 95vw;
+    transform: translateY(10px);
+    transition: transform .2s;
+  }
+  .modal-overlay.open .modal { transform: translateY(0); }
+  .modal-title {
+    font-size: 1.1rem;
+    font-weight: 800;
+    margin-bottom: 20px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .modal-close {
+    width: 28px; height: 28px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: none;
+    color: var(--text-dim);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem;
+    transition: all .15s;
+  }
+  .modal-close:hover { border-color: #ff4757; color: #ff4757; }
+  .form-row { margin-bottom: 14px; }
+  .form-label {
+    font-size: 0.75rem;
+    font-family: 'DM Mono', monospace;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+    display: block;
+  }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+
+  /* Alist fetch panel */
+  .alist-panel {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px;
+    margin-top: 10px;
+  }
+  .alist-panel-title {
+    font-size: 0.72rem;
+    font-family: 'DM Mono', monospace;
+    color: var(--accent2);
+    margin-bottom: 10px;
+    letter-spacing: 0.05em;
+  }
+
+  /* ---- STATUS BAR ---- */
+  .status-bar {
+    padding: 6px 20px;
+    background: var(--bg);
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    flex-shrink: 0;
+  }
+  .status-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--text-dim);
+    flex-shrink: 0;
+  }
+  .status-dot.ok { background: #47ff8a; box-shadow: 0 0 6px #47ff8a80; }
+  .status-dot.warn { background: var(--accent); box-shadow: 0 0 6px rgba(232,255,71,0.5); }
+
+  /* ---- EMPTY STATE ---- */
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 40px 20px;
+    color: var(--text-dim);
+    text-align: center;
+  }
+  .empty-icon { font-size: 2rem; opacity: 0.4; }
+  .empty-text { font-size: 0.82rem; }
+
+  /* ---- NOTIFICATION ---- */
+  .notif {
+    position: fixed;
+    bottom: 24px; right: 24px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    font-size: 0.8rem;
+    font-family: 'DM Mono', monospace;
+    color: var(--text);
+    z-index: 300;
+    transform: translateY(80px);
+    opacity: 0;
+    transition: all .3s cubic-bezier(.34,1.56,.64,1);
+    max-width: 300px;
+  }
+  .notif.show { transform: translateY(0); opacity: 1; }
+  .notif.success { border-color: #47ff8a; }
+  .notif.error { border-color: #ff4757; }
+
+  /* ---- RESPONSIVE ---- */
+  @media (max-width: 800px) {
+    .app {
+      grid-template-columns: 1fr;
+      grid-template-rows: auto auto 1fr;
+      height: auto;
+    }
+    .video-section { grid-column: 1; grid-row: 1; border-right: none; border-bottom: 1px solid var(--border); }
+    .sidebar { grid-column: 1; grid-row: 2; height: 400px; border-top: none; }
+    .controls-bar { flex-wrap: wrap; }
+  }
+
+  /* scrollbar global */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
 </head>
 <body>
-<div class="player-container" id="app">
-    <h1><i class="fas fa-play-circle" style="color:#4caf50;"></i> Alist 顺播器</h1>
-    <div class="sub">♻️ 自动保存进度 · 列表循环 · 客户端存储</div>
 
-    <!-- 配置栏 -->
-    <div class="config-panel">
-        <div class="input-group">
-            <label><i class="fas fa-server"></i> Alist 服务器地址</label>
-            <input type="url" id="serverInput" placeholder="https://alist.example.com:5244" value="https://alist.xxxxxx.com" />
+<!-- HEADER -->
+<header>
+  <div class="logo">Stream<span>Vault</span></div>
+  <div class="header-actions">
+    <button class="btn" onclick="exportData()">⬆ 匯出</button>
+    <button class="btn" onclick="importTrigger()">⬇ 匯入</button>
+    <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+    <button class="btn primary" onclick="openAddModal()">＋ 新增影片</button>
+  </div>
+</header>
+
+<!-- MAIN APP -->
+<div class="app">
+
+  <!-- VIDEO SECTION -->
+  <div class="video-section">
+    <div class="video-wrapper">
+      <video id="mainVideo" preload="metadata"></video>
+      <div class="video-overlay" id="videoOverlay">
+        <div class="overlay-icon">
+          <svg viewBox="0 0 24 24" width="28" height="28"><path d="M8 5v14l11-7z"/></svg>
         </div>
-        <div class="input-group">
-            <label><i class="fas fa-folder"></i> 目录路径 (例如 /电影)</label>
-            <input type="text" id="pathInput" placeholder="/视频/合集" value="/" />
+        <div class="overlay-text" id="overlayText">請在右側播放清單選擇影片，或新增來自 AList 的影片</div>
+      </div>
+    </div>
+
+    <div class="video-info">
+      <div class="video-title" id="videoTitle">未選擇影片</div>
+      <div class="video-meta">
+        <span class="badge" id="repeatBadge">🔁 循環</span>
+        <span class="badge" id="indexBadge">0 / 0</span>
+        <span class="badge active" id="sourceBadge">AList</span>
+      </div>
+    </div>
+
+    <div class="controls-bar">
+      <button class="ctrl-btn" onclick="playPrev()" title="上一個">
+        <svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
+      </button>
+      <button class="ctrl-btn large" id="playPauseBtn" onclick="togglePlay()" title="播放/暫停">
+        <svg viewBox="0 0 24 24" id="playIcon"><path d="M8 5v14l11-7z"/></svg>
+      </button>
+      <button class="ctrl-btn" onclick="playNext()" title="下一個">
+        <svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zm2-8.14L11.03 12 8 14.14V9.86zM16 6h2v12h-2z"/></svg>
+      </button>
+
+      <div class="progress-container">
+        <div class="progress-track" id="progressTrack" onclick="seekVideo(event)">
+          <div class="progress-fill" id="progressFill"></div>
         </div>
-        <div class="button-row">
-            <button id="loadListBtn" class="primary"><i class="fas fa-sync-alt"></i> 加载列表</button>
-            <button id="clearStorageBtn" class="warning"><i class="fas fa-trash-alt"></i> 清除存储</button>
+        <div class="time-display">
+          <span id="currentTime">0:00</span>
+          <span id="durationTime">0:00</span>
         </div>
+      </div>
+
+      <div class="volume-container">
+        <button class="ctrl-btn" onclick="toggleMute()" title="靜音">
+          <svg viewBox="0 0 24 24" id="volIcon"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>
+        </button>
+        <input type="range" id="volumeSlider" min="0" max="1" step="0.05" value="1" oninput="setVolume(this.value)">
+      </div>
+
+      <select class="speed-select" onchange="setSpeed(this.value)" title="播放速度">
+        <option value="0.5">0.5×</option>
+        <option value="0.75">0.75×</option>
+        <option value="1" selected>1×</option>
+        <option value="1.25">1.25×</option>
+        <option value="1.5">1.5×</option>
+        <option value="2">2×</option>
+      </select>
+
+      <button class="ctrl-btn" onclick="toggleFullscreen()" title="全螢幕">
+        <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+      </button>
     </div>
 
-    <!-- 视频播放器 -->
-    <div class="video-section">
-        <video id="videoPlayer" controls crossorigin="anonymous" preload="metadata"></video>
+    <div class="status-bar">
+      <div class="status-dot" id="statusDot"></div>
+      <span id="statusText">就緒</span>
+      <span>·</span>
+      <span id="storageText">localStorage 已啟用</span>
+      <span>·</span>
+      <span id="alistStatus">AList: 未連線</span>
+    </div>
+  </div>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-tabs">
+      <div class="tab active" onclick="switchTab('playlist')">播放清單</div>
+      <div class="tab" onclick="switchTab('settings')">設定</div>
     </div>
 
-    <!-- 播放列表标题 -->
-    <div class="playlist-header">
-        <h3><i class="fas fa-list"></i> 播放列表（按文件名排序）</h3>
-        <span class="badge" id="countBadge">0 个视频</span>
+    <!-- PLAYLIST TAB -->
+    <div class="tab-content active" id="tab-playlist">
+      <div class="playlist-header">
+        <span class="playlist-count" id="playlistCount">0 個影片</span>
+        <div class="playlist-actions">
+          <button class="btn" onclick="clearProgress()" title="清除所有進度">清除進度</button>
+          <button class="btn" onclick="sortPlaylist()" title="重新排序">排序</button>
+        </div>
+      </div>
+      <div class="playlist-scroll" id="playlistScroll">
+        <div class="empty-state" id="emptyState">
+          <div class="empty-icon">📂</div>
+          <div class="empty-text">播放清單為空<br>點擊右上角「新增影片」開始</div>
+        </div>
+      </div>
     </div>
 
-    <!-- 列表容器 -->
-    <div id="playlistContainer" class="playlist-grid">
-        <div class="empty-message"><i class="fas fa-folder-open"></i> 点击「加载列表」从 Alist 获取影片</div>
-    </div>
+    <!-- SETTINGS TAB -->
+    <div class="tab-content" id="tab-settings">
+      <div class="settings-scroll">
 
-    <!-- 底部信息/操作 -->
-    <div class="footer-actions">
-        <span><i class="fas fa-history"></i> 进度已自动保存</span>
-        <button id="resetProgressBtn" class="reset-link"><i class="far fa-clock"></i> 重置当前视频进度</button>
+        <div class="setting-group">
+          <div class="setting-group-title">AList 連線</div>
+          <div class="setting-row">
+            <div>
+              <div class="setting-label">AList 伺服器網址</div>
+              <div class="setting-desc">例：https://alist.example.com</div>
+            </div>
+          </div>
+          <input type="text" class="setting-input full" id="alistUrl" placeholder="https://your-alist-server.com" oninput="saveSettings()">
+          <div class="setting-row" style="margin-top:10px">
+            <div>
+              <div class="setting-label">API Token（選填）</div>
+              <div class="setting-desc">若需要驗證請填寫</div>
+            </div>
+          </div>
+          <input type="password" class="setting-input full" id="alistToken" placeholder="alist-xxxxx" oninput="saveSettings()">
+          <div style="margin-top:10px">
+            <button class="btn primary" onclick="testAlistConnection()" style="width:100%">測試連線</button>
+          </div>
+        </div>
+
+        <div class="setting-group">
+          <div class="setting-group-title">播放設定</div>
+          <div class="setting-row">
+            <div>
+              <div class="setting-label">自動播放下一個</div>
+              <div class="setting-desc">影片結束後自動播放</div>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" id="autoNext" checked onchange="saveSettings()">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="setting-row">
+            <div>
+              <div class="setting-label">循環播放清單</div>
+              <div class="setting-desc">清單播完後從頭開始</div>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" id="loopPlaylist" checked onchange="saveSettings()">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="setting-row">
+            <div>
+              <div class="setting-label">記憶播放進度</div>
+              <div class="setting-desc">儲存每個影片的播放位置</div>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" id="saveProgress" checked onchange="saveSettings()">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="setting-row">
+            <div>
+              <div class="setting-label">自動跳轉至上次進度</div>
+              <div class="setting-desc">開啟影片時跳至記憶位置</div>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" id="resumeProgress" checked onchange="saveSettings()">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="setting-group">
+          <div class="setting-group-title">資料管理</div>
+          <div class="setting-row" style="flex-direction:column; align-items:stretch; gap:8px">
+            <button class="btn" onclick="exportData()" style="width:100%">匯出播放清單和進度（JSON）</button>
+            <button class="btn" onclick="importTrigger()" style="width:100%">匯入播放清單（JSON）</button>
+            <button class="btn" onclick="clearAll()" style="width:100%; color:#ff4757; border-color:#ff4757">清除所有資料</button>
+          </div>
+        </div>
+
+      </div>
     </div>
-    <div id="errorMessage" class="error-msg" style="display: none;"></div>
+  </div>
+
 </div>
 
+<!-- ADD VIDEO MODAL -->
+<div class="modal-overlay" id="addModal">
+  <div class="modal">
+    <div class="modal-title">
+      <span>新增影片</span>
+      <button class="modal-close" onclick="closeAddModal()">✕</button>
+    </div>
+
+    <div class="form-row">
+      <label class="form-label">影片名稱</label>
+      <input type="text" class="setting-input" id="inputName" placeholder="影片標題">
+    </div>
+
+    <div class="form-row">
+      <label class="form-label">影片網址（直接輸入）</label>
+      <input type="text" class="setting-input" id="inputUrl" placeholder="https://... 或 AList 路徑">
+    </div>
+
+    <div class="alist-panel">
+      <div class="alist-panel-title">⚡ 從 AList 路徑取得串流連結</div>
+      <div style="display:flex; gap:8px">
+        <input type="text" class="setting-input" id="alistPath" placeholder="/影片/folder/video.mp4" style="flex:1">
+        <button class="btn primary" onclick="fetchAlistUrl()" style="white-space:nowrap">取得連結</button>
+      </div>
+      <div style="margin-top:8px; font-family:'DM Mono',monospace; font-size:0.68rem; color:var(--text-dim)" id="alistFetchStatus"></div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn" onclick="closeAddModal()">取消</button>
+      <button class="btn primary" onclick="addVideo()">新增至清單</button>
+    </div>
+  </div>
+</div>
+
+<!-- NOTIFICATION -->
+<div class="notif" id="notif"></div>
+
 <script>
-    (function(){
-        // 核心存储 KEY
-        const STORAGE_KEY = 'alist_loop_player_v1';
+// ============================================================
+// STATE
+// ============================================================
+let playlist = [];
+let currentIndex = -1;
+let progressMap = {};  // { videoId: seconds }
+let settings = {
+  alistUrl: '',
+  alistToken: '',
+  autoNext: true,
+  loopPlaylist: true,
+  saveProgress: true,
+  resumeProgress: true
+};
 
-        // DOM 元素
-        const serverInput = document.getElementById('serverInput');
-        const pathInput = document.getElementById('pathInput');
-        const loadListBtn = document.getElementById('loadListBtn');
-        const clearStorageBtn = document.getElementById('clearStorageBtn');
-        const resetProgressBtn = document.getElementById('resetProgressBtn');
-        const video = document.getElementById('videoPlayer');
-        const playlistContainer = document.getElementById('playlistContainer');
-        const countBadge = document.getElementById('countBadge');
-        const errorDiv = document.getElementById('errorMessage');
+const video = document.getElementById('mainVideo');
+let progressSaveTimer = null;
 
-        // 状态数据
-        let currentServer = '';
-        let currentPath = '';
-        let playlist = [];               // [{ name, path, sign? }]
-        let currentIndex = -1;
-        // 进度映射表: key = 文件路径, value = 上次播放秒数
-        let progressMap = new Map();      // 使用 Map 方便序列化 (会转成对象)
+// ============================================================
+// INIT
+// ============================================================
+function init() {
+  loadFromStorage();
+  applySettings();
+  renderPlaylist();
+  updateStatusBar();
+  setupVideoEvents();
+  // Restore last playing video
+  const lastIdx = parseInt(localStorage.getItem('sv_lastIndex') || '-1');
+  if (lastIdx >= 0 && lastIdx < playlist.length) {
+    loadVideo(lastIdx, false); // don't autoplay on load
+  }
+}
 
-        // 从 localStorage 读取数据并恢复
-        function loadFromStorage() {
-            try {
-                const saved = localStorage.getItem(STORAGE_KEY);
-                if (!saved) return false;
+// ============================================================
+// STORAGE
+// ============================================================
+function loadFromStorage() {
+  try {
+    const pl = localStorage.getItem('sv_playlist');
+    if (pl) playlist = JSON.parse(pl);
+    const pm = localStorage.getItem('sv_progress');
+    if (pm) progressMap = JSON.parse(pm);
+    const st = localStorage.getItem('sv_settings');
+    if (st) settings = { ...settings, ...JSON.parse(st) };
+  } catch(e) { showNotif('讀取儲存資料時出錯', 'error'); }
+}
 
-                const data = JSON.parse(saved);
-                // 验证必要字段
-                if (data.server && data.path && Array.isArray(data.playlist) && typeof data.currentIndex === 'number' && data.progressMap) {
-                    currentServer = data.server;
-                    currentPath = data.path;
-                    playlist = data.playlist;
-                    currentIndex = data.currentIndex;
-                    // 将 progressMap 对象还原为 Map
-                    progressMap = new Map(Object.entries(data.progressMap || {}));
+function savePlaylist() {
+  localStorage.setItem('sv_playlist', JSON.stringify(playlist));
+  localStorage.setItem('sv_lastIndex', currentIndex.toString());
+}
 
-                    // 填充输入框
-                    serverInput.value = currentServer;
-                    pathInput.value = currentPath;
+function saveProgressMap() {
+  localStorage.setItem('sv_progress', JSON.stringify(progressMap));
+}
 
-                    renderPlaylist();
-                    updateCount();
+function saveSettings() {
+  settings.alistUrl    = document.getElementById('alistUrl').value.trim().replace(/\/$/, '');
+  settings.alistToken  = document.getElementById('alistToken').value.trim();
+  settings.autoNext    = document.getElementById('autoNext').checked;
+  settings.loopPlaylist= document.getElementById('loopPlaylist').checked;
+  settings.saveProgress= document.getElementById('saveProgress').checked;
+  settings.resumeProgress = document.getElementById('resumeProgress').checked;
+  localStorage.setItem('sv_settings', JSON.stringify(settings));
+  updateRepeatBadge();
+}
 
-                    // 如果播放列表有效且索引有效，尝试加载视频
-                    if (playlist.length > 0 && currentIndex >= 0 && currentIndex < playlist.length) {
-                        loadVideoByIndex(currentIndex, false); // 不保存当前进度（刚启动）
-                    } else {
-                        // 索引无效重置
-                        currentIndex = playlist.length > 0 ? 0 : -1;
-                    }
-                    return true;
-                }
-            } catch (e) {
-                console.warn('读取存储失败', e);
-            }
-            return false;
-        }
+function applySettings() {
+  document.getElementById('alistUrl').value   = settings.alistUrl || '';
+  document.getElementById('alistToken').value  = settings.alistToken || '';
+  document.getElementById('autoNext').checked  = settings.autoNext;
+  document.getElementById('loopPlaylist').checked = settings.loopPlaylist;
+  document.getElementById('saveProgress').checked = settings.saveProgress;
+  document.getElementById('resumeProgress').checked = settings.resumeProgress;
+  updateRepeatBadge();
+}
 
-        // 保存完整状态到 localStorage
-        function saveFullState() {
-            try {
-                // 将 progressMap 转为对象
-                const progressObj = Object.fromEntries(progressMap);
-                const state = {
-                    server: currentServer,
-                    path: currentPath,
-                    playlist: playlist,
-                    currentIndex: currentIndex,
-                    progressMap: progressObj,
-                };
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-            } catch (e) {
-                console.warn('保存失败', e);
-            }
-        }
+// ============================================================
+// VIDEO EVENTS
+// ============================================================
+function setupVideoEvents() {
+  video.addEventListener('timeupdate', onTimeUpdate);
+  video.addEventListener('ended', onVideoEnded);
+  video.addEventListener('play', () => setPlayIcon(true));
+  video.addEventListener('pause', () => setPlayIcon(false));
+  video.addEventListener('loadedmetadata', onMetaLoaded);
+  video.addEventListener('error', onVideoError);
+  video.addEventListener('waiting', () => updateStatus('緩衝中...', 'warn'));
+  video.addEventListener('playing', () => updateStatus('播放中', 'ok'));
+}
 
-        // 保存当前播放进度 (通常由 timeupdate 触发)
-        function saveCurrentProgress() {
-            if (!video || !video.src || currentIndex < 0 || currentIndex >= playlist.length) return;
-            const currentFile = playlist[currentIndex];
-            if (!currentFile) return;
+function onTimeUpdate() {
+  const cur = video.currentTime;
+  const dur = video.duration || 0;
+  if (dur) {
+    document.getElementById('progressFill').style.width = (cur / dur * 100) + '%';
+  }
+  document.getElementById('currentTime').textContent = formatTime(cur);
+  document.getElementById('durationTime').textContent = formatTime(dur);
 
-            const currentTime = video.currentTime;
-            // 只保存有意义的时间（大于0.5秒，避免刚打开就覆盖）
-            if (currentTime > 1) {
-                progressMap.set(currentFile.path, currentTime);
-                saveFullState();   // 同步保存 (也可防抖，但简单起见直接存)
-            }
-        }
+  // Save progress (throttled)
+  if (settings.saveProgress && currentIndex >= 0) {
+    clearTimeout(progressSaveTimer);
+    progressSaveTimer = setTimeout(() => {
+      const vid = playlist[currentIndex];
+      if (vid) {
+        progressMap[vid.id] = cur;
+        saveProgressMap();
+        updatePlaylistItemProgress(currentIndex);
+      }
+    }, 2000);
+  }
+}
 
-        // 防抖/节流：使用timeupdate，频率较高，加一个简单节流：每5秒最多存一次
-        let saveTimer = null;
-        function throttledSaveProgress() {
-            if (saveTimer) return;
-            saveTimer = setTimeout(() => {
-                saveCurrentProgress();
-                saveTimer = null;
-            }, 3000); // 3秒存一次
-        }
+function onMetaLoaded() {
+  document.getElementById('durationTime').textContent = formatTime(video.duration);
+  // Resume from saved progress
+  if (settings.resumeProgress && currentIndex >= 0) {
+    const vid = playlist[currentIndex];
+    const saved = progressMap[vid?.id] || 0;
+    if (saved > 5 && saved < video.duration - 10) {
+      video.currentTime = saved;
+    }
+  }
+}
 
-        // 加载指定索引的视频，restoreProgress 是否从进度恢复
-        async function loadVideoByIndex(index, restoreProgress = true) {
-            if (!playlist.length || index < 0 || index >= playlist.length) {
-                video.src = '';
-                return;
-            }
-            const file = playlist[index];
-            if (!file || !file.path) {
-                console.error('文件路径无效', file);
-                return; // 或者播放下一个
-            }
-            const baseUrl = currentServer.replace(/\/+$/, '');
-            // 确保 file.path 以 '/' 开头，避免拼接错误
-            let videoPath = file.path.startsWith('/') ? file.path : '/' + file.path;
-            let videoUrl = `${baseUrl}/d${videoPath}`;
-            if (file.sign) {
-                videoUrl += `?sign=${encodeURIComponent(file.sign)}`;
-            }
-            // 设置视频源
-            video.src = videoUrl;
-            video.load();
+function onVideoEnded() {
+  updateStatus('播放完畢', 'ok');
+  if (settings.autoNext) {
+    setTimeout(() => playNext(), 800);
+  }
+}
 
-            // 恢复上次进度 (如果需要)
-            if (restoreProgress) {
-                const savedTime = progressMap.get(file.path) || 0;
-                if (savedTime > 0) {
-                    // 等待视频元数据加载后跳转
-                    const onLoaded = () => {
-                        video.currentTime = savedTime;
-                        video.removeEventListener('loadedmetadata', onLoaded);
-                    };
-                    video.addEventListener('loadedmetadata', onLoaded);
-                }
-            }
+function onVideoError() {
+  updateStatus('影片載入失敗', 'warn');
+  showNotif('影片載入失敗，請檢查網址或 AList 設定', 'error');
+  setPlayIcon(false);
+}
 
-            // 更新 active 样式
-            renderPlaylist();
-            // 更新全局索引
-            currentIndex = index;
-            saveFullState(); // 存储索引变化
-        }
+// ============================================================
+// PLAYBACK CONTROL
+// ============================================================
+function loadVideo(index, autoplay = true) {
+  if (index < 0 || index >= playlist.length) return;
+  currentIndex = index;
+  const vid = playlist[index];
 
-        // 播放下一个 (循环)
-        function playNext() {
-            if (playlist.length === 0) return;
-            let nextIndex = currentIndex + 1;
-            if (nextIndex >= playlist.length) {
-                nextIndex = 0; // 循环
-            }
-            loadVideoByIndex(nextIndex, true);
-        }
+  video.src = vid.url;
+  video.load();
 
-        // 渲染播放列表
-        function renderPlaylist() {
-            if (!playlist.length) {
-                playlistContainer.innerHTML = `<div class="empty-message"><i class="fas fa-folder-open"></i> 暂无视频，请加载列表</div>`;
-                countBadge.innerText = '0 个视频';
-                return;
-            }
+  document.getElementById('videoTitle').textContent = vid.name;
+  document.getElementById('indexBadge').textContent = `${index + 1} / ${playlist.length}`;
+  document.getElementById('videoOverlay').classList.add('hidden');
+  document.title = vid.name + ' — StreamVault';
 
-            let html = '';
-            playlist.forEach((file, idx) => {
-                const isActive = (idx === currentIndex);
-                const fileName = file.name || file.path.split('/').pop() || '未知';
-                html += `
-                    <div class="playlist-item ${isActive ? 'active' : ''}" data-index="${idx}">
-                        <span class="index">${idx+1}</span>
-                        <span class="name" title="${fileName}">${escapeHtml(fileName)}</span>
-                        ${isActive ? '<i class="fas fa-play" style="font-size:0.8rem;"></i>' : ''}
-                    </div>
-                `;
-            });
-            playlistContainer.innerHTML = html;
+  savePlaylist();
+  renderPlaylist();
 
-            // 绑定点击事件
-            document.querySelectorAll('.playlist-item').forEach(item => {
-                item.addEventListener('click', (e) => {
-                    const idx = parseInt(item.dataset.index, 10);
-                    if (!isNaN(idx) && idx !== currentIndex) {
-                        loadVideoByIndex(idx, true);
-                    }
-                });
-            });
-            countBadge.innerText = playlist.length + ' 个视频';
-        }
+  if (autoplay) {
+    video.play().catch(() => {});
+  }
+}
 
-        // 简单转义防止XSS
-        function escapeHtml(unsafe) {
-            return unsafe.replace(/[&<>"]/g, function(m) {
-                if(m === '&') return '&amp;'; if(m === '<') return '&lt;'; if(m === '>') return '&gt;'; if(m === '"') return '&quot;';
-                return m;
-            });
-        }
+function togglePlay() {
+  if (!video.src) return;
+  video.paused ? video.play() : video.pause();
+}
 
-        function updateCount() {
-            countBadge.innerText = playlist.length + ' 个视频';
-        }
+function playNext() {
+  if (playlist.length === 0) return;
+  let next = currentIndex + 1;
+  if (next >= playlist.length) {
+    if (settings.loopPlaylist) next = 0;
+    else return;
+  }
+  loadVideo(next);
+}
 
-        // 从 alist API 获取列表
-        async function fetchAlistList(server, path) {
-            const apiUrl = server.replace(/\/+$/, '') + '/api/fs/list';
-            const body = {
-                path: path || '/',
-                password: '',
-                page: 1,
-                per_page: 0,   // 0 表示获取全部
-                refresh: false,
-            };
+function playPrev() {
+  if (playlist.length === 0) return;
+  if (video.currentTime > 5) { video.currentTime = 0; return; }
+  let prev = currentIndex - 1;
+  if (prev < 0) {
+    if (settings.loopPlaylist) prev = playlist.length - 1;
+    else return;
+  }
+  loadVideo(prev);
+}
 
-            const response = await fetch(apiUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body),
-            });
+function seekVideo(e) {
+  if (!video.duration) return;
+  const rect = e.currentTarget.getBoundingClientRect();
+  const ratio = (e.clientX - rect.left) / rect.width;
+  video.currentTime = ratio * video.duration;
+}
 
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status} - 无法连接 Alist`);
-            }
+function toggleMute() {
+  video.muted = !video.muted;
+  updateVolIcon();
+}
 
-            const result = await response.json();
-            if (result.code !== 200) {
-                throw new Error(`Alist 错误: ${result.message || '未知错误'}`);
-            }
+function setVolume(v) {
+  video.volume = parseFloat(v);
+  video.muted = (v == 0);
+  updateVolIcon();
+}
 
-            const files = result.data?.content || [];
-            // 过滤出视频文件 (扩展名可自行增删)
-            const videoExt = ['.mp4', '.mkv', '.avi', '.mov', '.wmv', '.flv', '.webm', '.m4v', '.mpg', '.mpeg'];
-            const videoFiles = files
-                .filter(f => !f.is_dir)  // 只取文件
-                .filter(f => {
-                    const ext = f.name.substring(f.name.lastIndexOf('.')).toLowerCase();
-                    return videoExt.includes(ext);
-                })
-                .map(f => {
-                    // 尝试获取路径：如果API返回了 f.path 则直接使用，否则手动拼接
-                    let fullPath = f.path;
-                    if (!fullPath) {
-                        // 使用函数参数 path（当前请求的目录）和文件名拼接
-                        const dir = path.replace(/\/+$/, ''); // 去掉末尾多余的斜杠
-                        const fileName = f.name;
-                        // 如果 dir 为空（即请求根目录 '/'），则 fullPath 应以 '/' 开头
-                        if (dir === '') {
-                            fullPath = '/' + fileName;
-                        } else {
-                            fullPath = dir + '/' + fileName;
-                        }
-                        // 确保最终路径以 '/' 开头（后续拼接 /d 时需要）
-                        if (!fullPath.startsWith('/')) {
-                            fullPath = '/' + fullPath;
-                        }
-                    }
-                    return {
-                        name: f.name,
-                        path: fullPath,
-                        sign: f.sign || '',
-                        size: f.size,
-                    };
-                })
-                .sort((a, b) => a.name.localeCompare(b.name));  // 按文件名排序作为预定顺序
+function setSpeed(v) {
+  video.playbackRate = parseFloat(v);
+}
 
-            return videoFiles;
-        }
+function toggleFullscreen() {
+  const wrapper = document.querySelector('.video-wrapper');
+  if (!document.fullscreenElement) {
+    wrapper.requestFullscreen?.() || wrapper.webkitRequestFullscreen?.();
+  } else {
+    document.exitFullscreen?.() || document.webkitExitFullscreen?.();
+  }
+}
 
-        // 处理加载按钮点击
-        async function handleLoadList() {
-            const server = serverInput.value.trim();
-            const path = pathInput.value.trim() || '/';
-            if (!server) {
-                showError('请输入 Alist 服务器地址');
-                return;
-            }
+// ============================================================
+// PLAYLIST
+// ============================================================
+function addVideo() {
+  const name = document.getElementById('inputName').value.trim();
+  const url  = document.getElementById('inputUrl').value.trim();
+  if (!name || !url) { showNotif('請填寫名稱和網址', 'error'); return; }
 
-            // 尝试去除末尾斜杠
-            const cleanServer = server.replace(/\/+$/, '');
+  const item = {
+    id: 'v_' + Date.now() + '_' + Math.random().toString(36).slice(2,7),
+    name,
+    url,
+    added: new Date().toISOString()
+  };
+  playlist.push(item);
+  savePlaylist();
+  renderPlaylist();
+  closeAddModal();
+  showNotif('已新增：' + name, 'success');
 
-            showError(null); // 清除错误
-            loadListBtn.disabled = true;
-            loadListBtn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> 获取中...';
+  // Auto-load if first video
+  if (playlist.length === 1) loadVideo(0, false);
+}
 
-            try {
-                const videoFiles = await fetchAlistList(cleanServer, path);
+function removeVideo(index) {
+  const vid = playlist[index];
+  delete progressMap[vid.id];
+  saveProgressMap();
+  playlist.splice(index, 1);
+  if (currentIndex >= playlist.length) currentIndex = playlist.length - 1;
+  savePlaylist();
+  renderPlaylist();
+  showNotif('已移除影片');
+}
 
-                if (videoFiles.length === 0) {
-                    showError('该目录下没有找到视频文件');
-                }
+function moveUp(index) {
+  if (index === 0) return;
+  [playlist[index], playlist[index-1]] = [playlist[index-1], playlist[index]];
+  if (currentIndex === index) currentIndex--;
+  else if (currentIndex === index-1) currentIndex++;
+  savePlaylist(); renderPlaylist();
+}
 
-                // 更新全局数据
-                currentServer = cleanServer;
-                currentPath = path;
-                playlist = videoFiles;
-                // 重置索引和进度? 为了体验，保留之前的进度Map中属于当前列表的条目，清掉不存在的
-                const newProgressMap = new Map();
-                const existingPaths = new Set(videoFiles.map(f => f.path));
-                // 只保留仍存在的文件进度
-                for (let [filePath, time] of progressMap.entries()) {
-                    if (existingPaths.has(filePath)) {
-                        newProgressMap.set(filePath, time);
-                    }
-                }
-                progressMap = newProgressMap;
+function moveDown(index) {
+  if (index === playlist.length-1) return;
+  [playlist[index], playlist[index+1]] = [playlist[index+1], playlist[index]];
+  if (currentIndex === index) currentIndex++;
+  else if (currentIndex === index+1) currentIndex--;
+  savePlaylist(); renderPlaylist();
+}
 
-                if (videoFiles.length > 0) {
-                    currentIndex = 0;   // 默认从第一个开始
-                } else {
-                    currentIndex = -1;
-                }
+function renderPlaylist() {
+  const scroll = document.getElementById('playlistScroll');
+  const empty  = document.getElementById('emptyState');
+  document.getElementById('playlistCount').textContent = `${playlist.length} 個影片`;
 
-                // 重新渲染
-                renderPlaylist();
-                saveFullState();
+  if (playlist.length === 0) {
+    scroll.innerHTML = '';
+    scroll.appendChild(empty);
+    return;
+  }
 
-                if (currentIndex >= 0) {
-                    loadVideoByIndex(currentIndex, true);
-                } else {
-                    video.src = '';
-                }
+  scroll.innerHTML = '';
+  playlist.forEach((vid, i) => {
+    const saved = progressMap[vid.id] || 0;
+    const isActive = i === currentIndex;
+    const el = document.createElement('div');
+    el.className = 'playlist-item' + (isActive ? ' active' : '');
+    el.onclick = () => loadVideo(i);
 
-            } catch (err) {
-                showError('加载失败: ' + err.message);
-                console.error(err);
-            } finally {
-                loadListBtn.disabled = false;
-                loadListBtn.innerHTML = '<i class="fas fa-sync-alt"></i> 加载列表';
-            }
-        }
+    el.innerHTML = `
+      <div class="item-num">${i+1}</div>
+      <div class="item-info">
+        <div class="item-name">${escHtml(vid.name)}</div>
+        <div class="item-time">${saved > 0 ? '進度 ' + formatTime(saved) : '未播放'}</div>
+        <div class="item-progress-bar">
+          <div class="item-progress-fill" id="ipr_${vid.id}" style="width:0%"></div>
+        </div>
+      </div>
+      <div class="item-actions" onclick="event.stopPropagation()">
+        <button class="mini-btn" onclick="moveUp(${i})" title="上移">
+          <svg viewBox="0 0 24 24"><path d="M7 14l5-5 5 5z"/></svg>
+        </button>
+        <button class="mini-btn" onclick="moveDown(${i})" title="下移">
+          <svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
+        </button>
+        <button class="mini-btn danger" onclick="removeVideo(${i})" title="移除">
+          <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </div>
+    `;
+    scroll.appendChild(el);
+  });
 
-        // 清除所有存储
-        function handleClearStorage() {
-            if (confirm('清除所有保存的播放列表和进度？')) {
-                localStorage.removeItem(STORAGE_KEY);
-                // 重置内存状态
-                playlist = [];
-                currentIndex = -1;
-                progressMap.clear();
-                currentServer = '';
-                currentPath = '';
-                video.src = '';
-                renderPlaylist();
-                updateCount();
-                serverInput.value = '';
-                pathInput.value = '/';
-                showError(null);
-            }
-        }
+  // Scroll active into view
+  if (currentIndex >= 0) {
+    const items = scroll.querySelectorAll('.playlist-item');
+    if (items[currentIndex]) {
+      items[currentIndex].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+  }
 
-        // 重置当前视频进度
-        function resetCurrentProgress() {
-            if (currentIndex >= 0 && playlist[currentIndex]) {
-                const file = playlist[currentIndex];
-                progressMap.delete(file.path);
-                saveFullState();
-                // 同时将视频当前时间归零
-                video.currentTime = 0;
-                showError('当前视频进度已重置', 2000);
-            }
-        }
+  updateAllProgressBars();
+}
 
-        // 显示错误/临时消息 (可自动隐藏)
-        function showError(msg, timeout = 5000) {
-            if (!msg) {
-                errorDiv.style.display = 'none';
-                errorDiv.innerText = '';
-                return;
-            }
-            errorDiv.style.display = 'block';
-            errorDiv.innerText = msg;
-            if (timeout > 0) {
-                setTimeout(() => {
-                    errorDiv.style.display = 'none';
-                }, timeout);
-            }
-        }
+function updatePlaylistItemProgress(index) {
+  if (index < 0 || index >= playlist.length) return;
+  const vid = playlist[index];
+  const el = document.getElementById('ipr_' + vid.id);
+  if (el && video.duration) {
+    const pct = (progressMap[vid.id] || 0) / video.duration * 100;
+    el.style.width = Math.min(pct, 100) + '%';
+  }
+}
 
-        // --- 事件绑定 ---
-        video.addEventListener('timeupdate', throttledSaveProgress);
+function updateAllProgressBars() {
+  playlist.forEach((vid) => {
+    const el = document.getElementById('ipr_' + vid.id);
+    if (el && progressMap[vid.id]) {
+      // can't know duration for non-playing items, just show dot
+      el.style.width = '10px';
+    }
+  });
+}
 
-        video.addEventListener('ended', function() {
-            // 播放结束，播放下一个 (循环)
-            playNext();
-        });
+// ============================================================
+// ALIST
+// ============================================================
+async function fetchAlistUrl() {
+  const path = document.getElementById('alistPath').value.trim();
+  const statusEl = document.getElementById('alistFetchStatus');
+  if (!path) { statusEl.textContent = '請輸入路徑'; return; }
 
-        video.addEventListener('error', function(e) {
-            // 播放错误时尝试自动跳过？简单提示
-            console.error('视频错误', video.error);
-            showError(`视频加载失败 (${video.error?.message || '未知'})，3秒后尝试下一个...`);
-            // 延迟播放下一个，避免死循环
-            setTimeout(() => {
-                if (playlist.length > 1) playNext();
-            }, 3000);
-        });
+  const baseUrl = settings.alistUrl || document.getElementById('alistUrl').value.trim().replace(/\/$/, '');
+  if (!baseUrl) { statusEl.textContent = '請先在設定中填寫 AList 伺服器網址'; return; }
 
-        // 监听点击列表加载
-        loadListBtn.addEventListener('click', handleLoadList);
-        clearStorageBtn.addEventListener('click', handleClearStorage);
-        resetProgressBtn.addEventListener('click', resetCurrentProgress);
+  statusEl.textContent = '⏳ 正在取得連結...';
 
-        // 页面加载尝试从 localStorage 恢复
-        (function init() {
-            if (!loadFromStorage()) {
-                // 可设定演示默认值，但不用自动加载，让用户点击
-                serverInput.value = 'https://alist.xxxxxx.com'; // 改为占位提示
-                pathInput.value = '/';
-                playlist = [];
-                renderPlaylist();
-            }
-        })();
+  try {
+    const headers = { 'Content-Type': 'application/json' };
+    const token = settings.alistToken || document.getElementById('alistToken').value.trim();
+    if (token) headers['Authorization'] = token;
 
-        // 当页面关闭前，做最后一次保存 (实际上定时保存已做，但确保)
-        window.addEventListener('beforeunload', function() {
-            saveCurrentProgress();
-        });
+    const res = await fetch(`${baseUrl}/api/fs/get`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ path, password: '' })
+    });
+    const data = await res.json();
+    if (data.code === 200 && data.data?.raw_url) {
+      document.getElementById('inputUrl').value = data.data.raw_url;
+      if (!document.getElementById('inputName').value) {
+        document.getElementById('inputName').value = data.data.name || path.split('/').pop();
+      }
+      statusEl.style.color = '#47ff8a';
+      statusEl.textContent = '✓ 成功取得串流連結';
+    } else {
+      statusEl.style.color = '#ff4757';
+      statusEl.textContent = '✗ ' + (data.message || '取得失敗，請檢查路徑和權限');
+    }
+  } catch(e) {
+    statusEl.style.color = '#ff4757';
+    statusEl.textContent = '✗ 網路錯誤：' + e.message;
+  }
+}
 
-        // 额外：如果用户修改输入框但未加载，不影响存储。只有点加载才会更新
-    })();
+async function testAlistConnection() {
+  const baseUrl = document.getElementById('alistUrl').value.trim().replace(/\/$/, '');
+  if (!baseUrl) { showNotif('請填寫 AList 伺服器網址', 'error'); return; }
+
+  updateStatus('測試連線中...', 'warn');
+  try {
+    const headers = {};
+    const token = document.getElementById('alistToken').value.trim();
+    if (token) headers['Authorization'] = token;
+
+    const res = await fetch(`${baseUrl}/api/fs/list`, {
+      method: 'POST',
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: '/', password: '', page: 1, per_page: 1 })
+    });
+    const data = await res.json();
+    if (data.code === 200) {
+      document.getElementById('alistStatus').textContent = 'AList: ✓ 已連線';
+      showNotif('AList 連線成功！', 'success');
+      updateStatus('AList 已連線', 'ok');
+    } else {
+      document.getElementById('alistStatus').textContent = 'AList: ✗ 驗證失敗';
+      showNotif('連線失敗：' + (data.message || '未知錯誤'), 'error');
+      updateStatus('AList 連線失敗', 'warn');
+    }
+  } catch(e) {
+    document.getElementById('alistStatus').textContent = 'AList: ✗ 無法連線';
+    showNotif('無法連線至 AList：' + e.message, 'error');
+    updateStatus('連線錯誤', 'warn');
+  }
+}
+
+// ============================================================
+// IMPORT / EXPORT
+// ============================================================
+function exportData() {
+  const data = { playlist, progressMap, settings, exportedAt: new Date().toISOString() };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'streamvault_' + new Date().toISOString().slice(0,10) + '.json';
+  a.click();
+  showNotif('已匯出資料', 'success');
+}
+
+function importTrigger() { document.getElementById('importFile').click(); }
+
+function importData(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if (data.playlist) playlist = data.playlist;
+      if (data.progressMap) progressMap = data.progressMap;
+      if (data.settings) { settings = { ...settings, ...data.settings }; applySettings(); }
+      savePlaylist(); saveProgressMap(); saveSettings();
+      renderPlaylist();
+      showNotif(`已匯入 ${playlist.length} 個影片`, 'success');
+    } catch { showNotif('匯入失敗：格式錯誤', 'error'); }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+// ============================================================
+// UTILITY
+// ============================================================
+function clearProgress() {
+  progressMap = {};
+  saveProgressMap();
+  renderPlaylist();
+  showNotif('已清除所有播放進度');
+}
+
+function sortPlaylist() {
+  playlist.sort((a, b) => a.name.localeCompare(b.name, 'zh-Hant'));
+  savePlaylist(); renderPlaylist();
+  showNotif('已按名稱排序');
+}
+
+function clearAll() {
+  if (!confirm('確定要清除所有資料嗎？此操作無法復原。')) return;
+  playlist = []; progressMap = {};
+  currentIndex = -1;
+  video.src = '';
+  localStorage.removeItem('sv_playlist');
+  localStorage.removeItem('sv_progress');
+  renderPlaylist();
+  document.getElementById('videoTitle').textContent = '未選擇影片';
+  document.getElementById('videoOverlay').classList.remove('hidden');
+  showNotif('已清除所有資料');
+}
+
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t, i) => {
+    t.classList.toggle('active', ['playlist','settings'][i] === name);
+  });
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+}
+
+function openAddModal() {
+  document.getElementById('addModal').classList.add('open');
+  document.getElementById('inputName').value = '';
+  document.getElementById('inputUrl').value = '';
+  document.getElementById('alistPath').value = '';
+  document.getElementById('alistFetchStatus').textContent = '';
+  setTimeout(() => document.getElementById('inputName').focus(), 100);
+}
+
+function closeAddModal() {
+  document.getElementById('addModal').classList.remove('open');
+}
+
+document.getElementById('addModal').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('addModal')) closeAddModal();
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeAddModal();
+  if (e.key === ' ' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA' && e.target.tagName !== 'SELECT') {
+    e.preventDefault(); togglePlay();
+  }
+  if (e.key === 'ArrowRight' && e.target.tagName !== 'INPUT') video.currentTime += 10;
+  if (e.key === 'ArrowLeft' && e.target.tagName !== 'INPUT') video.currentTime -= 10;
+  if (e.key === 'ArrowUp' && e.target.tagName !== 'INPUT') { e.preventDefault(); playPrev(); }
+  if (e.key === 'ArrowDown' && e.target.tagName !== 'INPUT') { e.preventDefault(); playNext(); }
+});
+
+function formatTime(s) {
+  if (!s || isNaN(s)) return '0:00';
+  const m = Math.floor(s / 60);
+  const sec = Math.floor(s % 60);
+  return m + ':' + String(sec).padStart(2, '0');
+}
+
+function escHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function setPlayIcon(playing) {
+  document.getElementById('playIcon').innerHTML = playing
+    ? '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>'
+    : '<path d="M8 5v14l11-7z"/>';
+}
+
+function updateVolIcon() {
+  const icon = document.getElementById('volIcon');
+  if (video.muted || video.volume === 0) {
+    icon.innerHTML = '<path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>';
+  } else if (video.volume < 0.5) {
+    icon.innerHTML = '<path d="M18.5 12c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM5 9v6h4l5 5V4L9 9H5z"/>';
+  } else {
+    icon.innerHTML = '<path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>';
+  }
+}
+
+function updateStatus(msg, type) {
+  document.getElementById('statusText').textContent = msg;
+  const dot = document.getElementById('statusDot');
+  dot.className = 'status-dot' + (type ? ' ' + type : '');
+}
+
+function updateStatusBar() {
+  try {
+    localStorage.setItem('sv_test', '1');
+    localStorage.removeItem('sv_test');
+    document.getElementById('storageText').textContent = 'localStorage 已啟用';
+  } catch {
+    document.getElementById('storageText').textContent = 'localStorage 不可用';
+  }
+}
+
+function updateRepeatBadge() {
+  const badge = document.getElementById('repeatBadge');
+  badge.textContent = settings.loopPlaylist ? '🔁 循環' : '➡ 順序';
+  badge.className = 'badge' + (settings.loopPlaylist ? ' active' : '');
+}
+
+let notifTimer;
+function showNotif(msg, type = '') {
+  const el = document.getElementById('notif');
+  el.textContent = msg;
+  el.className = 'notif show' + (type ? ' ' + type : '');
+  clearTimeout(notifTimer);
+  notifTimer = setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+// ============================================================
+// BOOT
+// ============================================================
+init();
 </script>
-<!-- 说明：部署到 GitHub Pages 只需上传此 HTML，并确保你的 Alist 服务器配置了 CORS 允许你的 pages 域名或所有来源。 -->
 </body>
 </html>
