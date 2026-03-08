@@ -121,14 +121,14 @@
         .ctrl-bar {
             position: absolute;
             bottom: 0; left: 0; right: 0;
-            padding: 0 14px 12px;
-            background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.4) 60%, transparent 100%);
+            padding: 0 18px 16px;
+            background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.5) 55%, transparent 100%);
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 10px;
             opacity: 0;
-            transform: translateY(4px);
-            transition: opacity 0.22s ease, transform 0.22s ease;
+            transform: translateY(6px);
+            transition: opacity 0.25s ease, transform 0.25s ease;
             pointer-events: none;
             z-index: 10;
         }
@@ -142,39 +142,40 @@
         /* Progress bar */
         .ctrl-progress {
             position: relative;
-            height: 3px;
+            height: 4px;
             background: rgba(255,255,255,0.15);
-            border-radius: 3px;
+            border-radius: 4px;
             cursor: pointer;
             transition: height 0.15s;
+            margin: 0 2px;
         }
         .ctrl-bar:hover .ctrl-progress,
-        .ctrl-progress:hover { height: 5px; }
+        .ctrl-progress:hover { height: 6px; }
         .ctrl-progress-buf {
             position: absolute;
             left: 0; top: 0; height: 100%;
-            background: rgba(255,255,255,0.12);
-            border-radius: 3px;
+            background: rgba(255,255,255,0.14);
+            border-radius: 4px;
             pointer-events: none;
         }
         .ctrl-progress-fill {
             position: absolute;
             left: 0; top: 0; height: 100%;
             background: var(--amber);
-            border-radius: 3px;
+            border-radius: 4px;
             pointer-events: none;
             transition: width 0.1s linear;
         }
         .ctrl-progress-thumb {
             position: absolute;
             top: 50%;
-            width: 12px; height: 12px;
+            width: 14px; height: 14px;
             background: var(--amber-hi);
             border-radius: 50%;
             transform: translate(-50%, -50%) scale(0);
             transition: transform 0.15s;
             pointer-events: none;
-            box-shadow: 0 0 6px rgba(200,131,58,0.6);
+            box-shadow: 0 0 8px rgba(200,131,58,0.7);
         }
         .ctrl-progress:hover .ctrl-progress-thumb { transform: translate(-50%, -50%) scale(1); }
 
@@ -182,14 +183,51 @@
         .ctrl-row {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
         }
+
+        /* Play button — distinct pill shape */
+        .ctrl-btn-play {
+            background: var(--amber);
+            border: none;
+            color: #0e1117;
+            width: 40px; height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: background 0.15s, transform 0.12s, box-shadow 0.15s;
+            font-size: 0;
+            letter-spacing: 0;
+            text-transform: none;
+            box-shadow: 0 2px 10px rgba(200,131,58,0.4);
+        }
+        .ctrl-btn-play:hover {
+            background: var(--amber-hi);
+            transform: scale(1.1);
+            box-shadow: 0 4px 16px rgba(200,131,58,0.55);
+        }
+        .ctrl-btn-play:active { transform: scale(0.95); }
+        /* Playing state: outlined ring instead of filled */
+        .ctrl-btn-play.is-playing {
+            background: rgba(200,131,58,0.15);
+            border: 1.5px solid var(--amber);
+            color: var(--amber-hi);
+            box-shadow: none;
+        }
+        .ctrl-btn-play.is-playing:hover {
+            background: rgba(200,131,58,0.28);
+            box-shadow: 0 0 12px rgba(200,131,58,0.3);
+        }
+
         .ctrl-btn {
             background: none;
             border: none;
-            color: rgba(255,255,255,0.85);
-            padding: 4px 6px;
-            border-radius: 6px;
+            color: rgba(255,255,255,0.75);
+            padding: 8px;
+            border-radius: 8px;
             cursor: pointer;
             display: flex;
             align-items: center;
@@ -199,41 +237,44 @@
             font-size: 0;
             letter-spacing: 0;
             text-transform: none;
+            min-width: 36px; min-height: 36px;
         }
-        .ctrl-btn:hover { color: var(--amber-hi); background: rgba(255,255,255,0.08); }
+        .ctrl-btn:hover { color: var(--amber-hi); background: rgba(255,255,255,0.1); }
         .ctrl-time {
             font-family: 'DM Mono', monospace;
-            font-size: 0.68rem;
+            font-size: 0.72rem;
             color: rgba(255,255,255,0.6);
             letter-spacing: 0.05em;
             white-space: nowrap;
             user-select: none;
+            padding: 0 4px;
         }
         .ctrl-spacer { flex: 1; }
         .ctrl-vol-wrap {
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 8px;
         }
         .ctrl-vol {
             -webkit-appearance: none;
             appearance: none;
-            width: 64px;
-            height: 3px;
-            border-radius: 3px;
-            background: rgba(255,255,255,0.15);
+            width: 72px;
+            height: 4px;
+            border-radius: 4px;
+            background: rgba(255,255,255,0.18);
             outline: none;
             cursor: pointer;
         }
         .ctrl-vol::-webkit-slider-thumb {
             -webkit-appearance: none;
-            width: 10px; height: 10px;
+            width: 13px; height: 13px;
             border-radius: 50%;
             background: var(--amber);
             cursor: pointer;
+            box-shadow: 0 0 4px rgba(200,131,58,0.5);
         }
         .ctrl-vol::-moz-range-thumb {
-            width: 10px; height: 10px;
+            width: 13px; height: 13px;
             border-radius: 50%;
             background: var(--amber);
             border: none;
@@ -584,22 +625,22 @@
                 <div class="ctrl-progress-thumb" id="ctrlThumb"></div>
             </div>
             <div class="ctrl-row">
-                <button class="ctrl-btn" id="ctrlPlay" title="播放/暫停">
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" id="ctrlPlayIcon">
-                        <path d="M5 3l8 5-8 5V3z" fill="currentColor"/>
+                <button class="ctrl-btn-play" id="ctrlPlay" title="播放/暫停">
+                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" id="ctrlPlayIcon">
+                        <path d="M6 4l9 5-9 5V4z" fill="currentColor"/>
                     </svg>
                 </button>
                 <button class="ctrl-btn" id="ctrlSkipB" title="後退10秒">
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8a5 5 0 1 0 .9-2.9" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M3 3v3h3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><text x="5.5" y="10.5" font-size="4" fill="currentColor" font-family="monospace">10</text></svg>
+                    <svg width="18" height="18" viewBox="0 0 16 16" fill="none"><path d="M3 8a5 5 0 1 0 .9-2.9" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M3 3v3h3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><text x="5.5" y="10.5" font-size="4" fill="currentColor" font-family="monospace">10</text></svg>
                 </button>
                 <button class="ctrl-btn" id="ctrlSkipF" title="快進10秒">
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M13 8a5 5 0 1 1-.9-2.9" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M13 3v3h-3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><text x="4.5" y="10.5" font-size="4" fill="currentColor" font-family="monospace">10</text></svg>
+                    <svg width="18" height="18" viewBox="0 0 16 16" fill="none"><path d="M13 8a5 5 0 1 1-.9-2.9" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M13 3v3h-3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><text x="4.5" y="10.5" font-size="4" fill="currentColor" font-family="monospace">10</text></svg>
                 </button>
                 <span class="ctrl-time" id="ctrlTime">0:00 / 0:00</span>
                 <span class="ctrl-spacer"></span>
                 <div class="ctrl-vol-wrap">
                     <button class="ctrl-btn" id="ctrlMute" title="靜音">
-                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" id="ctrlVolIcon">
+                        <svg width="18" height="18" viewBox="0 0 16 16" fill="none" id="ctrlVolIcon">
                             <path d="M3 6H1v4h2l4 3V3L3 6z" fill="currentColor"/>
                             <path d="M11 5a3 3 0 0 1 0 6M13 3a6 6 0 0 1 0 10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
                         </svg>
@@ -996,6 +1037,7 @@
         ctrlPlayIco.setAttribute('d', paused ? PLAY_PATH : PAUSE_PATH);
         overlayIco.setAttribute('d', paused ? PLAY_PATH : PAUSE_PATH);
         overlay.classList.toggle('show', paused);
+        ctrlPlay.classList.toggle('is-playing', !paused);
     }
 
     function syncVol() {
