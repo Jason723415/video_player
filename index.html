@@ -345,9 +345,9 @@
 
         /* ─── Fullscreen FAB ─────────────────────── */
         #fsBtn {
-            position: fixed;
-            bottom: 28px;
-            right: 28px;
+            position: absolute;
+            bottom: 18px;
+            right: 18px;
             z-index: 9999;
             width: 52px;
             height: 52px;
@@ -399,6 +399,15 @@
     <!-- Video -->
     <div class="video-wrap">
         <video id="videoPlayer" controls crossorigin="anonymous" preload="metadata"></video>
+        <!-- Fullscreen FAB lives here so it's visible inside fullscreen -->
+        <button id="fsBtn" title="全螢幕播放">
+            <svg id="fsIconExpand" width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <path d="M3 8V3h5M17 8V3h-5M3 12v5h5M17 12v5h-5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <svg id="fsIconCompress" width="20" height="20" viewBox="0 0 20 20" fill="none" style="display:none">
+                <path d="M8 3v5H3M12 3v5h5M8 17v-5H3M12 17v-5h5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </button>
     </div>
 
     <!-- Config -->
@@ -694,16 +703,6 @@
     window.addEventListener('beforeunload', saveCurrentProgress);
 })();
 </script>
-
-<!-- Fullscreen FAB -->
-<button id="fsBtn" title="全螢幕播放">
-    <svg id="fsIconExpand" width="20" height="20" viewBox="0 0 20 20" fill="none">
-        <path d="M3 8V3h5M17 8V3h-5M3 12v5h5M17 12v5h-5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>
-    <svg id="fsIconCompress" width="20" height="20" viewBox="0 0 20 20" fill="none" style="display:none">
-        <path d="M8 3v5H3M12 3v5h5M8 17v-5H3M12 17v-5h5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>
-</button>
 
 <script>
 (function(){
