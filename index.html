@@ -254,7 +254,7 @@
     <div class="config-panel">
         <div class="input-group">
             <label><i class="fas fa-server"></i> Alist 服务器地址</label>
-            <input type="url" id="serverInput" placeholder="https://alist.example.com:5244" value="https://alist.xxxxxx.com" />
+            <input type="url" id="serverInput" placeholder="例如 https://alist.example.com" value="" />
         </div>
         <div class="input-group">
             <label><i class="fas fa-folder"></i> 目录路径 (例如 /电影)</label>
@@ -695,12 +695,21 @@
 
         // 页面加载尝试从 localStorage 恢复
         (function init() {
-            if (!loadFromStorage()) {
-                // 可设定演示默认值，但不用自动加载，让用户点击
-                serverInput.value = 'https://alist.xxxxxx.com'; // 改为占位提示
-                pathInput.value = '/';
-                playlist = [];
-                renderPlaylist();
+            // 尝试从 localStorage 恢复上次的播放列表和进度（会填充输入框）
+            const restored = loadFromStorage();
+        
+            // 获取当前服务器地址（可能被 loadFromStorage 填充，也可能是空）
+            const server = serverInput.value.trim();
+            if (server) {
+                // 延迟一小段时间执行，确保 DOM 和事件监听完全就绪，避免与恢复过程冲突
+                setTimeout(() => {
+                    handleLoadList().catch(err => {
+                        console.warn('自动加载列表失败（可手动重试）:', err.message);
+                    });
+                }, 100);
+            } else {
+                // 如果服务器地址为空，可保持空列表，等待用户输入后手动加载
+                console.log('请输入 Alist 服务器地址后点击加载');
             }
         })();
 
