@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>🎬 Alist 循环播放器 · 本地进度存储</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+        }
+        body {
+            background: #0f0f0f;
+            color: #e0e0e0;
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            padding: 16px;
+        }
+        .player-container {
+            max-width: 1100px;
+            width: 100%;
+            background: #1e1e1e;
+            border-radius: 24px;
+            padding: 24px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.7);
+        }
+        h1 {
+            font-size: 1.8rem;
+            margin: 0 0 6px 0;
+            font-weight: 500;
+            letter-spacing: 1px;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .sub {
+            color: #aaa;
+            font-size: 0.9rem;
+            margin-bottom: 24px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 12px;
+        }
+        .config-panel {
+            background: #2a2a2a;
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 24px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            align-items: flex-end;
+        }
+        .input-group {
+            flex: 1 1 250px;
+            min-width: 200px;
+        }
+        .input-group label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #bbb;
+            margin-bottom: 6px;
+        }
+        .input-group input {
+            width: 100%;
+            background: #3a3a3a;
+            border: 1px solid #555;
+            color: white;
+            padding: 12px 16px;
+            border-radius: 40px;
+            font-size: 0.95rem;
+            outline: none;
+            transition: 0.2s;
+        }
+        .input-group input:focus {
+            border-color: #4caf50;
+            background: #2e2e2e;
+        }
+        .button-row {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-left: auto;
+        }
+        button {
+            background: #3a3a3a;
+            border: none;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 40px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.15s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            border: 1px solid #555;
+        }
+        button.primary {
+            background: #4caf50;
+            border-color: #2e7d32;
+            color: white;
+            font-weight: 600;
+        }
+        button.primary:hover {
+            background: #66bb6a;
+        }
+        button.warning {
+            background: #d32f2f;
+            border-color: #b71c1c;
+        }
+        button.warning:hover {
+            background: #f44336;
+        }
+        button:not(.primary):hover {
+            background: #4a4a4a;
+        }
+        .video-section {
+            background: #000;
+            border-radius: 20px;
+            overflow: hidden;
+            margin-bottom: 24px;
+            aspect-ratio: 16 / 9;
+        }
+        video {
+            width: 100%;
+            height: 100%;
+            display: block;
+            background: black;
+            outline: none;
+        }
+        .playlist-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 16px 0 12px 0;
+        }
+        .playlist-header h3 {
+            font-size: 1.2rem;
+            font-weight: 500;
+            margin: 0;
+            color: #fff;
+        }
+        .badge {
+            background: #333;
+            padding: 4px 12px;
+            border-radius: 40px;
+            font-size: 0.8rem;
+            color: #ccc;
+        }
+        .playlist-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+            padding: 4px 2px;
+            background: #1a1a1a;
+            border-radius: 18px;
+        }
+        .playlist-item {
+            background: #2a2a2a;
+            border-radius: 16px;
+            padding: 12px 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border: 1px solid #3a3a3a;
+            transition: 0.1s;
+            user-select: none;
+        }
+        .playlist-item:hover {
+            background: #3a3a3a;
+            border-color: #4caf50;
+        }
+        .playlist-item.active {
+            background: #2e7d32;
+            border-color: #81c784;
+        }
+        .playlist-item .index {
+            width: 26px;
+            height: 26px;
+            background: #444;
+            border-radius: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: bold;
+            color: #ccc;
+        }
+        .playlist-item.active .index {
+            background: #1b5e20;
+            color: white;
+        }
+        .playlist-item .name {
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-size: 0.9rem;
+        }
+        .footer-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 20px;
+            color: #aaa;
+            font-size: 0.85rem;
+        }
+        .reset-link {
+            background: none;
+            border: none;
+            color: #ff8a80;
+            text-decoration: underline;
+            cursor: pointer;
+            padding: 4px 8px;
+        }
+        .empty-message {
+            padding: 40px;
+            text-align: center;
+            color: #777;
+            font-style: italic;
+        }
+        .small-note {
+            color: #888;
+            font-size: 0.8rem;
+        }
+        .error-msg {
+            color: #ff8a80;
+            background: #3a1a1a;
+            border-radius: 40px;
+            padding: 10px 20px;
+            margin-top: 12px;
+        }
+    </style>
+    <!-- Font Awesome for icons (optional but nice) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+<div class="player-container" id="app">
+    <h1><i class="fas fa-play-circle" style="color:#4caf50;"></i> Alist 顺播器</h1>
+    <div class="sub">♻️ 自动保存进度 · 列表循环 · 客户端存储</div>
+
+    <!-- 配置栏 -->
+    <div class="config-panel">
+        <div class="input-group">
+            <label><i class="fas fa-server"></i> Alist 服务器地址</label>
+            <input type="url" id="serverInput" placeholder="https://alist.example.com:5244" value="https://alist.xxxxxx.com" />
+        </div>
+        <div class="input-group">
+            <label><i class="fas fa-folder"></i> 目录路径 (例如 /电影)</label>
+            <input type="text" id="pathInput" placeholder="/视频/合集" value="/" />
+        </div>
+        <div class="button-row">
+            <button id="loadListBtn" class="primary"><i class="fas fa-sync-alt"></i> 加载列表</button>
+            <button id="clearStorageBtn" class="warning"><i class="fas fa-trash-alt"></i> 清除存储</button>
+        </div>
+    </div>
+
+    <!-- 视频播放器 -->
+    <div class="video-section">
+        <video id="videoPlayer" controls crossorigin="anonymous" preload="metadata"></video>
+    </div>
+
+    <!-- 播放列表标题 -->
+    <div class="playlist-header">
+        <h3><i class="fas fa-list"></i> 播放列表（按文件名排序）</h3>
+        <span class="badge" id="countBadge">0 个视频</span>
+    </div>
+
+    <!-- 列表容器 -->
+    <div id="playlistContainer" class="playlist-grid">
+        <div class="empty-message"><i class="fas fa-folder-open"></i> 点击「加载列表」从 Alist 获取影片</div>
+    </div>
+
+    <!-- 底部信息/操作 -->
+    <div class="footer-actions">
+        <span><i class="fas fa-history"></i> 进度已自动保存</span>
+        <button id="resetProgressBtn" class="reset-link"><i class="far fa-clock"></i> 重置当前视频进度</button>
+    </div>
+    <div id="errorMessage" class="error-msg" style="display: none;"></div>
+</div>
+
+<script>
+    (function(){
+        // 核心存储 KEY
+        const STORAGE_KEY = 'alist_loop_player_v1';
+
+        // DOM 元素
+        const serverInput = document.getElementById('serverInput');
+        const pathInput = document.getElementById('pathInput');
+        const loadListBtn = document.getElementById('loadListBtn');
+        const clearStorageBtn = document.getElementById('clearStorageBtn');
+        const resetProgressBtn = document.getElementById('resetProgressBtn');
+        const video = document.getElementById('videoPlayer');
+        const playlistContainer = document.getElementById('playlistContainer');
+        const countBadge = document.getElementById('countBadge');
+        const errorDiv = document.getElementById('errorMessage');
+
+        // 状态数据
+        let currentServer = '';
+        let currentPath = '';
+        let playlist = [];               // [{ name, path, sign? }]
+        let currentIndex = -1;
+        // 进度映射表: key = 文件路径, value = 上次播放秒数
+        let progressMap = new Map();      // 使用 Map 方便序列化 (会转成对象)
+
+        // 从 localStorage 读取数据并恢复
+        function loadFromStorage() {
+            try {
+                const saved = localStorage.getItem(STORAGE_KEY);
+                if (!saved) return false;
+
+                const data = JSON.parse(saved);
+                // 验证必要字段
+                if (data.server && data.path && Array.isArray(data.playlist) && typeof data.currentIndex === 'number' && data.progressMap) {
+                    currentServer = data.server;
+                    currentPath = data.path;
+                    playlist = data.playlist;
+                    currentIndex = data.currentIndex;
+                    // 将 progressMap 对象还原为 Map
+                    progressMap = new Map(Object.entries(data.progressMap || {}));
+
+                    // 填充输入框
+                    serverInput.value = currentServer;
+                    pathInput.value = currentPath;
+
+                    renderPlaylist();
+                    updateCount();
+
+                    // 如果播放列表有效且索引有效，尝试加载视频
+                    if (playlist.length > 0 && currentIndex >= 0 && currentIndex < playlist.length) {
+                        loadVideoByIndex(currentIndex, false); // 不保存当前进度（刚启动）
+                    } else {
+                        // 索引无效重置
+                        currentIndex = playlist.length > 0 ? 0 : -1;
+                    }
+                    return true;
+                }
+            } catch (e) {
+                console.warn('读取存储失败', e);
+            }
+            return false;
+        }
+
+        // 保存完整状态到 localStorage
+        function saveFullState() {
+            try {
+                // 将 progressMap 转为对象
+                const progressObj = Object.fromEntries(progressMap);
+                const state = {
+                    server: currentServer,
+                    path: currentPath,
+                    playlist: playlist,
+                    currentIndex: currentIndex,
+                    progressMap: progressObj,
+                };
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+            } catch (e) {
+                console.warn('保存失败', e);
+            }
+        }
+
+        // 保存当前播放进度 (通常由 timeupdate 触发)
+        function saveCurrentProgress() {
+            if (!video || !video.src || currentIndex < 0 || currentIndex >= playlist.length) return;
+            const currentFile = playlist[currentIndex];
+            if (!currentFile) return;
+
+            const currentTime = video.currentTime;
+            // 只保存有意义的时间（大于0.5秒，避免刚打开就覆盖）
+            if (currentTime > 1) {
+                progressMap.set(currentFile.path, currentTime);
+                saveFullState();   // 同步保存 (也可防抖，但简单起见直接存)
+            }
+        }
+
+        // 防抖/节流：使用timeupdate，频率较高，加一个简单节流：每5秒最多存一次
+        let saveTimer = null;
+        function throttledSaveProgress() {
+            if (saveTimer) return;
+            saveTimer = setTimeout(() => {
+                saveCurrentProgress();
+                saveTimer = null;
+            }, 3000); // 3秒存一次
+        }
+
+        // 加载指定索引的视频，restoreProgress 是否从进度恢复
+        async function loadVideoByIndex(index, restoreProgress = true) {
+            if (!playlist.length || index < 0 || index >= playlist.length) {
+                video.src = '';
+                return;
+            }
+            const file = playlist[index];
+            const baseUrl = currentServer.replace(/\/+$/, '');  // 去掉末尾斜杠
+            // 构建带 sign 的播放链接 (如果有 sign 字段)
+            let videoUrl = `${baseUrl}/d${file.path}`;
+            if (file.sign) {
+                videoUrl += `?sign=${encodeURIComponent(file.sign)}`;
+            }
+            // 设置视频源
+            video.src = videoUrl;
+            video.load();
+
+            // 恢复上次进度 (如果需要)
+            if (restoreProgress) {
+                const savedTime = progressMap.get(file.path) || 0;
+                if (savedTime > 0) {
+                    // 等待视频元数据加载后跳转
+                    const onLoaded = () => {
+                        video.currentTime = savedTime;
+                        video.removeEventListener('loadedmetadata', onLoaded);
+                    };
+                    video.addEventListener('loadedmetadata', onLoaded);
+                }
+            }
+
+            // 更新 active 样式
+            renderPlaylist();
+            // 更新全局索引
+            currentIndex = index;
+            saveFullState(); // 存储索引变化
+        }
+
+        // 播放下一个 (循环)
+        function playNext() {
+            if (playlist.length === 0) return;
+            let nextIndex = currentIndex + 1;
+            if (nextIndex >= playlist.length) {
+                nextIndex = 0; // 循环
+            }
+            loadVideoByIndex(nextIndex, true);
+        }
+
+        // 渲染播放列表
+        function renderPlaylist() {
+            if (!playlist.length) {
+                playlistContainer.innerHTML = `<div class="empty-message"><i class="fas fa-folder-open"></i> 暂无视频，请加载列表</div>`;
+                countBadge.innerText = '0 个视频';
+                return;
+            }
+
+            let html = '';
+            playlist.forEach((file, idx) => {
+                const isActive = (idx === currentIndex);
+                const fileName = file.name || file.path.split('/').pop() || '未知';
+                html += `
+                    <div class="playlist-item ${isActive ? 'active' : ''}" data-index="${idx}">
+                        <span class="index">${idx+1}</span>
+                        <span class="name" title="${fileName}">${escapeHtml(fileName)}</span>
+                        ${isActive ? '<i class="fas fa-play" style="font-size:0.8rem;"></i>' : ''}
+                    </div>
+                `;
+            });
+            playlistContainer.innerHTML = html;
+
+            // 绑定点击事件
+            document.querySelectorAll('.playlist-item').forEach(item => {
+                item.addEventListener('click', (e) => {
+                    const idx = parseInt(item.dataset.index, 10);
+                    if (!isNaN(idx) && idx !== currentIndex) {
+                        loadVideoByIndex(idx, true);
+                    }
+                });
+            });
+            countBadge.innerText = playlist.length + ' 个视频';
+        }
+
+        // 简单转义防止XSS
+        function escapeHtml(unsafe) {
+            return unsafe.replace(/[&<>"]/g, function(m) {
+                if(m === '&') return '&amp;'; if(m === '<') return '&lt;'; if(m === '>') return '&gt;'; if(m === '"') return '&quot;';
+                return m;
+            });
+        }
+
+        function updateCount() {
+            countBadge.innerText = playlist.length + ' 个视频';
+        }
+
+        // 从 alist API 获取列表
+        async function fetchAlistList(server, path) {
+            const apiUrl = server.replace(/\/+$/, '') + '/api/fs/list';
+            const body = {
+                path: path || '/',
+                password: '',
+                page: 1,
+                per_page: 0,   // 0 表示获取全部
+                refresh: false,
+            };
+
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status} - 无法连接 Alist`);
+            }
+
+            const result = await response.json();
+            if (result.code !== 200) {
+                throw new Error(`Alist 错误: ${result.message || '未知错误'}`);
+            }
+
+            const files = result.data?.content || [];
+            // 过滤出视频文件 (扩展名可自行增删)
+            const videoExt = ['.mp4', '.mkv', '.avi', '.mov', '.wmv', '.flv', '.webm', '.m4v', '.mpg', '.mpeg'];
+            const videoFiles = files
+                .filter(f => !f.is_dir)  // 只取文件
+                .filter(f => {
+                    const ext = f.name.substring(f.name.lastIndexOf('.')).toLowerCase();
+                    return videoExt.includes(ext);
+                })
+                .map(f => ({
+                    name: f.name,
+                    path: f.path,               // 完整路径
+                    sign: f.sign || '',          // 可能为空
+                    size: f.size,
+                }))
+                .sort((a, b) => a.name.localeCompare(b.name));  // 按文件名排序作为预定顺序
+
+            return videoFiles;
+        }
+
+        // 处理加载按钮点击
+        async function handleLoadList() {
+            const server = serverInput.value.trim();
+            const path = pathInput.value.trim() || '/';
+            if (!server) {
+                showError('请输入 Alist 服务器地址');
+                return;
+            }
+
+            // 尝试去除末尾斜杠
+            const cleanServer = server.replace(/\/+$/, '');
+
+            showError(null); // 清除错误
+            loadListBtn.disabled = true;
+            loadListBtn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> 获取中...';
+
+            try {
+                const videoFiles = await fetchAlistList(cleanServer, path);
+
+                if (videoFiles.length === 0) {
+                    showError('该目录下没有找到视频文件');
+                }
+
+                // 更新全局数据
+                currentServer = cleanServer;
+                currentPath = path;
+                playlist = videoFiles;
+                // 重置索引和进度? 为了体验，保留之前的进度Map中属于当前列表的条目，清掉不存在的
+                const newProgressMap = new Map();
+                const existingPaths = new Set(videoFiles.map(f => f.path));
+                // 只保留仍存在的文件进度
+                for (let [filePath, time] of progressMap.entries()) {
+                    if (existingPaths.has(filePath)) {
+                        newProgressMap.set(filePath, time);
+                    }
+                }
+                progressMap = newProgressMap;
+
+                if (videoFiles.length > 0) {
+                    currentIndex = 0;   // 默认从第一个开始
+                } else {
+                    currentIndex = -1;
+                }
+
+                // 重新渲染
+                renderPlaylist();
+                saveFullState();
+
+                if (currentIndex >= 0) {
+                    loadVideoByIndex(currentIndex, true);
+                } else {
+                    video.src = '';
+                }
+
+            } catch (err) {
+                showError('加载失败: ' + err.message);
+                console.error(err);
+            } finally {
+                loadListBtn.disabled = false;
+                loadListBtn.innerHTML = '<i class="fas fa-sync-alt"></i> 加载列表';
+            }
+        }
+
+        // 清除所有存储
+        function handleClearStorage() {
+            if (confirm('清除所有保存的播放列表和进度？')) {
+                localStorage.removeItem(STORAGE_KEY);
+                // 重置内存状态
+                playlist = [];
+                currentIndex = -1;
+                progressMap.clear();
+                currentServer = '';
+                currentPath = '';
+                video.src = '';
+                renderPlaylist();
+                updateCount();
+                serverInput.value = '';
+                pathInput.value = '/';
+                showError(null);
+            }
+        }
+
+        // 重置当前视频进度
+        function resetCurrentProgress() {
+            if (currentIndex >= 0 && playlist[currentIndex]) {
+                const file = playlist[currentIndex];
+                progressMap.delete(file.path);
+                saveFullState();
+                // 同时将视频当前时间归零
+                video.currentTime = 0;
+                showError('当前视频进度已重置', 2000);
+            }
+        }
+
+        // 显示错误/临时消息 (可自动隐藏)
+        function showError(msg, timeout = 5000) {
+            if (!msg) {
+                errorDiv.style.display = 'none';
+                errorDiv.innerText = '';
+                return;
+            }
+            errorDiv.style.display = 'block';
+            errorDiv.innerText = msg;
+            if (timeout > 0) {
+                setTimeout(() => {
+                    errorDiv.style.display = 'none';
+                }, timeout);
+            }
+        }
+
+        // --- 事件绑定 ---
+        video.addEventListener('timeupdate', throttledSaveProgress);
+
+        video.addEventListener('ended', function() {
+            // 播放结束，播放下一个 (循环)
+            playNext();
+        });
+
+        video.addEventListener('error', function(e) {
+            // 播放错误时尝试自动跳过？简单提示
+            console.error('视频错误', video.error);
+            showError(`视频加载失败 (${video.error?.message || '未知'})，3秒后尝试下一个...`);
+            // 延迟播放下一个，避免死循环
+            setTimeout(() => {
+                if (playlist.length > 1) playNext();
+            }, 3000);
+        });
+
+        // 监听点击列表加载
+        loadListBtn.addEventListener('click', handleLoadList);
+        clearStorageBtn.addEventListener('click', handleClearStorage);
+        resetProgressBtn.addEventListener('click', resetCurrentProgress);
+
+        // 页面加载尝试从 localStorage 恢复
+        (function init() {
+            if (!loadFromStorage()) {
+                // 可设定演示默认值，但不用自动加载，让用户点击
+                serverInput.value = 'https://alist.xxxxxx.com'; // 改为占位提示
+                pathInput.value = '/';
+                playlist = [];
+                renderPlaylist();
+            }
+        })();
+
+        // 当页面关闭前，做最后一次保存 (实际上定时保存已做，但确保)
+        window.addEventListener('beforeunload', function() {
+            saveCurrentProgress();
+        });
+
+        // 额外：如果用户修改输入框但未加载，不影响存储。只有点加载才会更新
+    })();
+</script>
+<!-- 说明：部署到 GitHub Pages 只需上传此 HTML，并确保你的 Alist 服务器配置了 CORS 允许你的 pages 域名或所有来源。 -->
+</body>
+</html>
