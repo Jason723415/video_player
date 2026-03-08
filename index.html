@@ -527,12 +527,31 @@
                     const ext = f.name.substring(f.name.lastIndexOf('.')).toLowerCase();
                     return videoExt.includes(ext);
                 })
-                .map(f => ({
-                    name: f.name,
-                    path: f.path,               // 完整路径
-                    sign: f.sign || '',          // 可能为空
-                    size: f.size,
-                }))
+                .map(f => {
+                    // 尝试获取路径：如果API返回了 f.path 则直接使用，否则手动拼接
+                    let fullPath = f.path;
+                    if (!fullPath) {
+                        // 使用函数参数 path（当前请求的目录）和文件名拼接
+                        const dir = path.replace(/\/+$/, ''); // 去掉末尾多余的斜杠
+                        const fileName = f.name;
+                        // 如果 dir 为空（即请求根目录 '/'），则 fullPath 应以 '/' 开头
+                        if (dir === '') {
+                            fullPath = '/' + fileName;
+                        } else {
+                            fullPath = dir + '/' + fileName;
+                        }
+                        // 确保最终路径以 '/' 开头（后续拼接 /d 时需要）
+                        if (!fullPath.startsWith('/')) {
+                            fullPath = '/' + fullPath;
+                        }
+                    }
+                    return {
+                        name: f.name,
+                        path: fullPath,
+                        sign: f.sign || '',
+                        size: f.size,
+                    };
+                })
                 .sort((a, b) => a.name.localeCompare(b.name));  // 按文件名排序作为预定顺序
 
             return videoFiles;
