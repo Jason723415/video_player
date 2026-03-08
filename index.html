@@ -339,7 +339,7 @@
 
                     // 如果播放列表有效且索引有效，尝试加载视频
                     if (playlist.length > 0 && currentIndex >= 0 && currentIndex < playlist.length) {
-                        loadVideoByIndex(currentIndex, false); // 不保存当前进度（刚启动）
+                        loadVideoByIndex(currentIndex, true); // 不保存当前进度（刚启动）
                     } else {
                         // 索引无效重置
                         currentIndex = playlist.length > 0 ? 0 : -1;
