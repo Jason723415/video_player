@@ -242,6 +242,11 @@
 <div class="player-container" id="app">
     <h1><i class="fas fa-play-circle" style="color:#4caf50;"></i> 影片播放器</h1>
 
+        <!-- 视频播放器 -->
+    <div class="video-section">
+        <video id="videoPlayer" controls crossorigin="anonymous" preload="metadata"></video>
+    </div>
+    
     <!-- 配置栏 -->
     <div class="config-panel">
         <div class="input-group">
@@ -256,11 +261,6 @@
             <button id="loadListBtn" class="primary"><i class="fas fa-sync-alt"></i> 加载列表</button>
             <button id="clearStorageBtn" class="warning"><i class="fas fa-trash-alt"></i> 清除存储</button>
         </div>
-    </div>
-
-    <!-- 视频播放器 -->
-    <div class="video-section">
-        <video id="videoPlayer" controls crossorigin="anonymous" preload="metadata"></video>
     </div>
 
     <!-- 播放列表标题 -->
