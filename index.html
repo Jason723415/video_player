@@ -342,6 +342,49 @@
             background: linear-gradient(90deg, transparent, var(--border) 20%, var(--border) 80%, transparent);
             margin: 0;
         }
+
+        /* ─── Fullscreen FAB ─────────────────────── */
+        #fsBtn {
+            position: fixed;
+            bottom: 28px;
+            right: 28px;
+            z-index: 9999;
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            padding: 0;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            color: var(--amber);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.5), 0 0 0 1px rgba(200,131,58,0.1);
+            transition: background 0.18s, border-color 0.18s, box-shadow 0.18s, transform 0.15s;
+            letter-spacing: 0;
+            text-transform: none;
+            font-size: 0;
+        }
+        #fsBtn:hover {
+            background: var(--amber);
+            border-color: var(--amber-lo);
+            color: #0e1117;
+            box-shadow: 0 6px 28px rgba(200,131,58,0.35), 0 0 0 1px var(--amber-lo);
+            transform: scale(1.08);
+        }
+        #fsBtn:active { transform: scale(0.96); }
+        #fsBtn svg { transition: transform 0.2s; }
+        #fsBtn.is-fullscreen {
+            background: rgba(200,131,58,0.15);
+            border-color: var(--amber);
+            color: var(--amber-hi);
+        }
+        #fsBtn.is-fullscreen:hover {
+            background: var(--danger);
+            border-color: var(--danger);
+            color: #fff;
+            box-shadow: 0 6px 28px rgba(184,74,58,0.4);
+        }
     </style>
 </head>
 <body>
@@ -651,5 +694,63 @@
     window.addEventListener('beforeunload', saveCurrentProgress);
 })();
 </script>
+
+<!-- Fullscreen FAB -->
+<button id="fsBtn" title="全螢幕播放">
+    <svg id="fsIconExpand" width="20" height="20" viewBox="0 0 20 20" fill="none">
+        <path d="M3 8V3h5M17 8V3h-5M3 12v5h5M17 12v5h-5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <svg id="fsIconCompress" width="20" height="20" viewBox="0 0 20 20" fill="none" style="display:none">
+        <path d="M8 3v5H3M12 3v5h5M8 17v-5H3M12 17v-5h5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+</button>
+
+<script>
+(function(){
+    const fsBtn          = document.getElementById('fsBtn');
+    const fsIconExpand   = document.getElementById('fsIconExpand');
+    const fsIconCompress = document.getElementById('fsIconCompress');
+    const video          = document.getElementById('videoPlayer');
+
+    function setFsBtnState(isFs) {
+        fsBtn.classList.toggle('is-fullscreen', isFs);
+        fsIconExpand.style.display   = isFs ? 'none' : '';
+        fsIconCompress.style.display = isFs ? ''     : 'none';
+        fsBtn.title = isFs ? '縮小並暫停' : '全螢幕播放';
+    }
+
+    function isFullscreen() {
+        return !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement);
+    }
+
+    function enterFullscreen(el) {
+        if (el.requestFullscreen)       return el.requestFullscreen();
+        if (el.webkitRequestFullscreen) return el.webkitRequestFullscreen();
+        if (el.mozRequestFullScreen)    return el.mozRequestFullScreen();
+    }
+
+    function exitFullscreen() {
+        if (document.exitFullscreen)       return document.exitFullscreen();
+        if (document.webkitExitFullscreen) return document.webkitExitFullscreen();
+        if (document.mozCancelFullScreen)  return document.mozCancelFullScreen();
+    }
+
+    fsBtn.addEventListener('click', function() {
+        if (isFullscreen()) {
+            exitFullscreen();
+            video.pause();
+        } else {
+            var videoWrap = document.querySelector('.video-wrap');
+            enterFullscreen(videoWrap);
+            video.play().catch(function(e){ console.warn('播放失敗:', e.message); });
+        }
+    });
+
+    ['fullscreenchange','webkitfullscreenchange','mozfullscreenchange'].forEach(function(evt) {
+        document.addEventListener(evt, function(){ setFsBtnState(isFullscreen()); });
+    });
+})();
+</script>
+
 </body>
 </html>
