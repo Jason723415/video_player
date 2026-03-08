@@ -401,39 +401,35 @@
                 return;
             }
             const file = playlist[index];
-            if (!file || !file.path) {
-                console.error('文件路径无效', file);
-                return; // 或者播放下一个
-            }
-            const baseUrl = currentServer.replace(/\/+$/, '');
-            // 确保 file.path 以 '/' 开头，避免拼接错误
-            let videoPath = file.path.startsWith('/') ? file.path : '/' + file.path;
-            let videoUrl = `${baseUrl}/d${videoPath}`;
+            const baseUrl = currentServer.replace(/\/+$/, '');  // 去掉末尾斜杠
+            let videoUrl = `${baseUrl}/d${file.path}`;
             if (file.sign) {
                 videoUrl += `?sign=${encodeURIComponent(file.sign)}`;
             }
-            // 设置视频源
             video.src = videoUrl;
             video.load();
-
-            // 恢复上次进度 (如果需要)
-            if (restoreProgress) {
-                const savedTime = progressMap.get(file.path) || 0;
-                if (savedTime > 0) {
-                    // 等待视频元数据加载后跳转
-                    const onLoaded = () => {
+        
+            // 统一处理：元数据加载后恢复进度并尝试自动播放
+            const onLoaded = () => {
+                if (restoreProgress) {
+                    const savedTime = progressMap.get(file.path) || 0;
+                    if (savedTime > 0) {
                         video.currentTime = savedTime;
-                        video.removeEventListener('loadedmetadata', onLoaded);
-                    };
-                    video.addEventListener('loadedmetadata', onLoaded);
+                    }
                 }
-            }
-
+                // 尝试自动播放（静默处理浏览器阻止的情况）
+                video.play().catch(e => {
+                    // 自动播放被阻止是常见情况（如未与页面交互），仅打印警告
+                    console.warn('自动播放失败（可手动点击播放）:', e.message);
+                });
+                video.removeEventListener('loadedmetadata', onLoaded);
+            };
+            video.addEventListener('loadedmetadata', onLoaded);
+        
             // 更新 active 样式
             renderPlaylist();
-            // 更新全局索引
             currentIndex = index;
-            saveFullState(); // 存储索引变化
+            saveFullState();
         }
 
         // 播放下一个 (循环)
