@@ -101,11 +101,178 @@
             box-shadow:
                 0 0 0 1px rgba(200,131,58,0.08),
                 0 24px 60px rgba(0,0,0,0.6);
+            cursor: pointer;
+        }
+        .video-wrap:fullscreen,
+        .video-wrap:-webkit-full-screen,
+        .video-wrap:-moz-full-screen {
+            border-radius: 0;
+            aspect-ratio: unset;
+            width: 100vw;
+            height: 100vh;
         }
         video {
             width: 100%; height: 100%;
             display: block;
             background: #000;
+        }
+
+        /* ─── Custom Controls ────────────────────── */
+        .ctrl-bar {
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            padding: 0 14px 12px;
+            background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.4) 60%, transparent 100%);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            opacity: 0;
+            transform: translateY(4px);
+            transition: opacity 0.22s ease, transform 0.22s ease;
+            pointer-events: none;
+            z-index: 10;
+        }
+        .video-wrap:hover .ctrl-bar,
+        .video-wrap.ctrl-visible .ctrl-bar {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: all;
+        }
+
+        /* Progress bar */
+        .ctrl-progress {
+            position: relative;
+            height: 3px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 3px;
+            cursor: pointer;
+            transition: height 0.15s;
+        }
+        .ctrl-bar:hover .ctrl-progress,
+        .ctrl-progress:hover { height: 5px; }
+        .ctrl-progress-buf {
+            position: absolute;
+            left: 0; top: 0; height: 100%;
+            background: rgba(255,255,255,0.12);
+            border-radius: 3px;
+            pointer-events: none;
+        }
+        .ctrl-progress-fill {
+            position: absolute;
+            left: 0; top: 0; height: 100%;
+            background: var(--amber);
+            border-radius: 3px;
+            pointer-events: none;
+            transition: width 0.1s linear;
+        }
+        .ctrl-progress-thumb {
+            position: absolute;
+            top: 50%;
+            width: 12px; height: 12px;
+            background: var(--amber-hi);
+            border-radius: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            transition: transform 0.15s;
+            pointer-events: none;
+            box-shadow: 0 0 6px rgba(200,131,58,0.6);
+        }
+        .ctrl-progress:hover .ctrl-progress-thumb { transform: translate(-50%, -50%) scale(1); }
+
+        /* Bottom row */
+        .ctrl-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .ctrl-btn {
+            background: none;
+            border: none;
+            color: rgba(255,255,255,0.85);
+            padding: 4px 6px;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.15s, background 0.15s;
+            font-family: 'DM Mono', monospace;
+            font-size: 0;
+            letter-spacing: 0;
+            text-transform: none;
+        }
+        .ctrl-btn:hover { color: var(--amber-hi); background: rgba(255,255,255,0.08); }
+        .ctrl-time {
+            font-family: 'DM Mono', monospace;
+            font-size: 0.68rem;
+            color: rgba(255,255,255,0.6);
+            letter-spacing: 0.05em;
+            white-space: nowrap;
+            user-select: none;
+        }
+        .ctrl-spacer { flex: 1; }
+        .ctrl-vol-wrap {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .ctrl-vol {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 64px;
+            height: 3px;
+            border-radius: 3px;
+            background: rgba(255,255,255,0.15);
+            outline: none;
+            cursor: pointer;
+        }
+        .ctrl-vol::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 10px; height: 10px;
+            border-radius: 50%;
+            background: var(--amber);
+            cursor: pointer;
+        }
+        .ctrl-vol::-moz-range-thumb {
+            width: 10px; height: 10px;
+            border-radius: 50%;
+            background: var(--amber);
+            border: none;
+            cursor: pointer;
+        }
+        /* Overlay play button when paused */
+        .play-overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .play-overlay.show { opacity: 1; }
+        .play-overlay-circle {
+            width: 64px; height: 64px;
+            border-radius: 50%;
+            background: rgba(0,0,0,0.55);
+            border: 1.5px solid rgba(200,131,58,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--amber-hi);
+        }
+        /* Click ripple */
+        @keyframes ripple {
+            0%   { transform: translate(-50%,-50%) scale(0.5); opacity: 0.6; }
+            100% { transform: translate(-50%,-50%) scale(2.2); opacity: 0; }
+        }
+        .ripple {
+            position: absolute;
+            width: 60px; height: 60px;
+            border-radius: 50%;
+            background: rgba(200,131,58,0.25);
+            pointer-events: none;
+            animation: ripple 0.45s ease-out forwards;
         }
 
         /* ─── Config Panel ───────────────────────── */
@@ -398,7 +565,50 @@
 
     <!-- Video -->
     <div class="video-wrap">
-        <video id="videoPlayer" controls crossorigin="anonymous" preload="metadata"></video>
+        <video id="videoPlayer" crossorigin="anonymous" preload="metadata"></video>
+
+        <!-- Pause overlay -->
+        <div class="play-overlay show" id="playOverlay">
+            <div class="play-overlay-circle">
+                <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+                    <path id="overlayIcon" d="M8 5l10 6-10 6V5z" fill="currentColor"/>
+                </svg>
+            </div>
+        </div>
+
+        <!-- Custom control bar -->
+        <div class="ctrl-bar" id="ctrlBar">
+            <div class="ctrl-progress" id="ctrlProgress">
+                <div class="ctrl-progress-buf" id="ctrlBuf"></div>
+                <div class="ctrl-progress-fill" id="ctrlFill"></div>
+                <div class="ctrl-progress-thumb" id="ctrlThumb"></div>
+            </div>
+            <div class="ctrl-row">
+                <button class="ctrl-btn" id="ctrlPlay" title="播放/暫停">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" id="ctrlPlayIcon">
+                        <path d="M5 3l8 5-8 5V3z" fill="currentColor"/>
+                    </svg>
+                </button>
+                <button class="ctrl-btn" id="ctrlSkipB" title="後退10秒">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8a5 5 0 1 0 .9-2.9" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M3 3v3h3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><text x="5.5" y="10.5" font-size="4" fill="currentColor" font-family="monospace">10</text></svg>
+                </button>
+                <button class="ctrl-btn" id="ctrlSkipF" title="快進10秒">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M13 8a5 5 0 1 1-.9-2.9" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M13 3v3h-3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><text x="4.5" y="10.5" font-size="4" fill="currentColor" font-family="monospace">10</text></svg>
+                </button>
+                <span class="ctrl-time" id="ctrlTime">0:00 / 0:00</span>
+                <span class="ctrl-spacer"></span>
+                <div class="ctrl-vol-wrap">
+                    <button class="ctrl-btn" id="ctrlMute" title="靜音">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" id="ctrlVolIcon">
+                            <path d="M3 6H1v4h2l4 3V3L3 6z" fill="currentColor"/>
+                            <path d="M11 5a3 3 0 0 1 0 6M13 3a6 6 0 0 1 0 10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+                        </svg>
+                    </button>
+                    <input type="range" class="ctrl-vol" id="ctrlVol" min="0" max="1" step="0.02" value="1">
+                </div>
+            </div>
+        </div>
+
         <!-- Fullscreen FAB lives here so it's visible inside fullscreen -->
         <button id="fsBtn" title="全螢幕播放">
             <svg id="fsIconExpand" width="20" height="20" viewBox="0 0 20 20" fill="none">
@@ -748,6 +958,129 @@
     ['fullscreenchange','webkitfullscreenchange','mozfullscreenchange'].forEach(function(evt) {
         document.addEventListener(evt, function(){ setFsBtnState(isFullscreen()); });
     });
+})();
+
+/* ─── Custom video controls ──────────────────────────── */
+(function(){
+    var vid        = document.getElementById('videoPlayer');
+    var wrap       = document.querySelector('.video-wrap');
+    var overlay    = document.getElementById('playOverlay');
+    var overlayIco = document.getElementById('overlayIcon');
+    var ctrlPlay   = document.getElementById('ctrlPlay');
+    var ctrlPlayIco= document.getElementById('ctrlPlayIcon');
+    var ctrlSkipB  = document.getElementById('ctrlSkipB');
+    var ctrlSkipF  = document.getElementById('ctrlSkipF');
+    var ctrlTime   = document.getElementById('ctrlTime');
+    var ctrlFill   = document.getElementById('ctrlFill');
+    var ctrlBuf    = document.getElementById('ctrlBuf');
+    var ctrlThumb  = document.getElementById('ctrlThumb');
+    var ctrlProgress= document.getElementById('ctrlProgress');
+    var ctrlMute   = document.getElementById('ctrlMute');
+    var ctrlVolIco = document.getElementById('ctrlVolIcon');
+    var ctrlVol    = document.getElementById('ctrlVol');
+
+    var PLAY_PATH  = 'M5 3l8 5-8 5V3z';
+    var PAUSE_PATH = 'M4 3h3v10H4zM9 3h3v10H9z';
+    var VOL_ON     = '<path d="M3 6H1v4h2l4 3V3L3 6z" fill="currentColor"/><path d="M11 5a3 3 0 0 1 0 6M13 3a6 6 0 0 1 0 10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>';
+    var VOL_OFF    = '<path d="M3 6H1v4h2l4 3V3L3 6z" fill="currentColor"/><path d="M12 6l-3 4m0-4l3 4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>';
+
+    function fmt(s) {
+        s = Math.floor(s||0);
+        var h = Math.floor(s/3600), m = Math.floor((s%3600)/60), ss = s%60;
+        if (h) return h+':'+String(m).padStart(2,'0')+':'+String(ss).padStart(2,'0');
+        return m+':'+String(ss).padStart(2,'0');
+    }
+
+    function syncPlay() {
+        var paused = vid.paused || vid.ended;
+        ctrlPlayIco.setAttribute('d', paused ? PLAY_PATH : PAUSE_PATH);
+        overlayIco.setAttribute('d', paused ? PLAY_PATH : PAUSE_PATH);
+        overlay.classList.toggle('show', paused);
+    }
+
+    function syncVol() {
+        ctrlVol.value = vid.muted ? 0 : vid.volume;
+        ctrlVolIco.innerHTML = (vid.muted || vid.volume === 0) ? VOL_OFF : VOL_ON;
+    }
+
+    function syncProgress() {
+        if (!vid.duration) return;
+        var pct = vid.currentTime / vid.duration * 100;
+        ctrlFill.style.width = pct + '%';
+        ctrlThumb.style.left = pct + '%';
+        // buffered
+        if (vid.buffered.length) {
+            var bpct = vid.buffered.end(vid.buffered.length-1) / vid.duration * 100;
+            ctrlBuf.style.width = bpct + '%';
+        }
+        ctrlTime.textContent = fmt(vid.currentTime) + ' / ' + fmt(vid.duration);
+    }
+
+    // Click on video area (not controls) = toggle play
+    wrap.addEventListener('click', function(e) {
+        if (e.target.closest('.ctrl-bar') || e.target.closest('#fsBtn')) return;
+        if (vid.paused) vid.play().catch(function(){});
+        else vid.pause();
+        spawnRipple(e);
+    });
+
+    function spawnRipple(e) {
+        var r = wrap.getBoundingClientRect();
+        var el = document.createElement('div');
+        el.className = 'ripple';
+        el.style.left = (e.clientX - r.left) + 'px';
+        el.style.top  = (e.clientY - r.top)  + 'px';
+        wrap.appendChild(el);
+        setTimeout(function(){ el.remove(); }, 500);
+    }
+
+    ctrlPlay.addEventListener('click', function(e) {
+        e.stopPropagation();
+        if (vid.paused) vid.play().catch(function(){});
+        else vid.pause();
+    });
+    ctrlSkipB.addEventListener('click', function(e){ e.stopPropagation(); vid.currentTime = Math.max(0, vid.currentTime-10); });
+    ctrlSkipF.addEventListener('click', function(e){ e.stopPropagation(); vid.currentTime = Math.min(vid.duration||0, vid.currentTime+10); });
+
+    // Progress scrubbing
+    var scrubbing = false;
+    function scrubTo(e) {
+        var r = ctrlProgress.getBoundingClientRect();
+        var pct = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
+        if (vid.duration) vid.currentTime = pct * vid.duration;
+    }
+    ctrlProgress.addEventListener('mousedown', function(e){ e.stopPropagation(); scrubbing = true; scrubTo(e); });
+    document.addEventListener('mousemove', function(e){ if (scrubbing) scrubTo(e); });
+    document.addEventListener('mouseup',   function(){ scrubbing = false; });
+    ctrlProgress.addEventListener('touchstart', function(e){ e.stopPropagation(); scrubbing = true; scrubTo(e.touches[0]); }, {passive:true});
+    document.addEventListener('touchmove',  function(e){ if (scrubbing) scrubTo(e.touches[0]); }, {passive:true});
+    document.addEventListener('touchend',   function(){ scrubbing = false; });
+
+    // Volume
+    ctrlMute.addEventListener('click', function(e){ e.stopPropagation(); vid.muted = !vid.muted; syncVol(); });
+    ctrlVol.addEventListener('input', function(e){ e.stopPropagation(); vid.volume = parseFloat(ctrlVol.value); vid.muted = vid.volume===0; syncVol(); });
+    ctrlVol.addEventListener('click', function(e){ e.stopPropagation(); });
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+        var tag = document.activeElement.tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+        if (e.code === 'Space')       { e.preventDefault(); if(vid.paused) vid.play().catch(function(){}); else vid.pause(); }
+        if (e.code === 'ArrowLeft')   { e.preventDefault(); vid.currentTime = Math.max(0, vid.currentTime-10); }
+        if (e.code === 'ArrowRight')  { e.preventDefault(); vid.currentTime = Math.min(vid.duration||0, vid.currentTime+10); }
+        if (e.code === 'ArrowUp')     { e.preventDefault(); vid.volume = Math.min(1, vid.volume+0.1); vid.muted=false; syncVol(); }
+        if (e.code === 'ArrowDown')   { e.preventDefault(); vid.volume = Math.max(0, vid.volume-0.1); syncVol(); }
+        if (e.code === 'KeyM')        { vid.muted = !vid.muted; syncVol(); }
+    });
+
+    vid.addEventListener('play',       syncPlay);
+    vid.addEventListener('pause',      syncPlay);
+    vid.addEventListener('ended',      syncPlay);
+    vid.addEventListener('timeupdate', syncProgress);
+    vid.addEventListener('durationchange', syncProgress);
+    vid.addEventListener('volumechange',   syncVol);
+
+    syncPlay(); syncVol();
 })();
 </script>
 
