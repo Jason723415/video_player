@@ -401,9 +401,14 @@
                 return;
             }
             const file = playlist[index];
-            const baseUrl = currentServer.replace(/\/+$/, '');  // 去掉末尾斜杠
-            // 构建带 sign 的播放链接 (如果有 sign 字段)
-            let videoUrl = `${baseUrl}/d${file.path}`;
+            if (!file || !file.path) {
+                console.error('文件路径无效', file);
+                return; // 或者播放下一个
+            }
+            const baseUrl = currentServer.replace(/\/+$/, '');
+            // 确保 file.path 以 '/' 开头，避免拼接错误
+            let videoPath = file.path.startsWith('/') ? file.path : '/' + file.path;
+            let videoUrl = `${baseUrl}/d${videoPath}`;
             if (file.sign) {
                 videoUrl += `?sign=${encodeURIComponent(file.sign)}`;
             }
